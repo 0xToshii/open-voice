@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QApplication
 from src.ui.main_window import MainWindow
 from src.data.mock_data_store import MockDataStore
 from src.engines.mock_speech import MockSpeechEngine
+from src.engines.speech_engine import SpeechRecognitionEngine
+from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
 from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
 from src.services.text_processor import TextProcessor
 from src.services.recording_service import VoiceRecordingService
@@ -26,15 +28,30 @@ def main():
 
     # Create dependencies using dependency injection
     data_store = MockDataStore()
-    speech_engine = MockSpeechEngine()
     text_processor = TextProcessor()
+
+    # Try to use real speech engine, fallback to mock if issues
+    try:
+        speech_engine = SpeechRecognitionEngine(engine_type="google")
+        print("✅ Using real Google Speech Recognition")
+    except Exception as e:
+        print(f"⚠️ Falling back to mock speech engine: {e}")
+        speech_engine = MockSpeechEngine()
+
+    # Try to use real audio recorder, fallback to mock if microphone issues
+    try:
+        audio_recorder = PyAudioRecorder()
+        print("✅ Using real audio recorder")
+    except Exception as e:
+        print(f"⚠️ Falling back to mock audio recorder: {e}")
+        audio_recorder = MockAudioRecorder()
 
     # Try to use real hotkey handler, fallback to mock if permissions issue
     try:
         hotkey_handler = FnKeyHandler()
-        print("Using real Fn key detection")
+        print("✅ Using real hotkey detection")
     except Exception as e:
-        print(f"Falling back to mock hotkey handler: {e}")
+        print(f"⚠️ Falling back to mock hotkey handler: {e}")
         hotkey_handler = MockHotkeyHandler()
 
     # Create recording service with all dependencies
@@ -43,6 +60,7 @@ def main():
         data_store=data_store,
         hotkey_handler=hotkey_handler,
         text_processor=text_processor,
+        audio_recorder=audio_recorder,
     )
 
     # Create and show main window

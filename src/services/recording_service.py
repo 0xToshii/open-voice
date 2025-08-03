@@ -2,6 +2,7 @@ from src.interfaces.speech import ISpeechEngine
 from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.interfaces.hotkey import IHotkeyHandler
 from src.interfaces.text_processing import ITextProcessor
+from src.interfaces.audio_recorder import IAudioRecorder
 from PySide6.QtCore import QObject, Signal
 from datetime import datetime
 import time
@@ -22,6 +23,7 @@ class VoiceRecordingService(QObject):
         data_store: IDataStore,
         hotkey_handler: IHotkeyHandler,
         text_processor: ITextProcessor,
+        audio_recorder: IAudioRecorder,
     ):
         super().__init__()
 
@@ -30,6 +32,7 @@ class VoiceRecordingService(QObject):
         self.data_store = data_store
         self.hotkey_handler = hotkey_handler
         self.text_processor = text_processor
+        self.audio_recorder = audio_recorder
 
         # Recording state
         self.is_recording = False
@@ -66,6 +69,9 @@ class VoiceRecordingService(QObject):
         self.is_recording = True
         self.recording_start_time = time.time()
 
+        # Start real audio recording
+        self.audio_recorder.start_recording()
+
         # Emit signal to show recording overlay (thread-safe)
         self.recording_started.emit()
 
@@ -77,6 +83,9 @@ class VoiceRecordingService(QObject):
         print("⚫ Recording stopped")
         self.is_recording = False
 
+        # Stop audio recording and get audio data
+        audio_data = self.audio_recorder.stop_recording()
+
         # Calculate recording duration
         if self.recording_start_time:
             duration = time.time() - self.recording_start_time
@@ -86,14 +95,19 @@ class VoiceRecordingService(QObject):
         # Emit signal to hide recording overlay (thread-safe)
         self.recording_stopped.emit()
 
-        # Process the "recording" (mock for now)
-        self.process_recording(duration)
+        # Process the real recording
+        self.process_recording(duration, audio_data)
 
-    def process_recording(self, duration: float):
+    def process_recording(self, duration: float, audio_data: Optional[bytes] = None):
         """Process the completed recording"""
         try:
-            # Get transcription from speech engine (mock data for now)
-            original_text = self.speech_engine.transcribe(b"mock_audio_data")
+            # Get transcription from speech engine using real audio data
+            if audio_data:
+                print(f"🔄 Processing real audio data ({len(audio_data)} bytes)")
+                original_text = self.speech_engine.transcribe(audio_data)
+            else:
+                print("⚠️ No audio data available, using fallback")
+                original_text = "No audio recorded"
 
             # Process text through pipeline (currently just passthrough)
             processed_text = self.text_processor.process_text(original_text)
