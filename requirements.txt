@@ -9,3 +9,4 @@ pyperclip>=1.8.2
 pyobjc-core>=9.0
 pyobjc-framework-Cocoa>=9.0
 pyobjc-framework-Quartz>=9.0
+requests>=2.31.0

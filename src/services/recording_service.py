@@ -44,6 +44,9 @@ class VoiceRecordingService(QObject):
         self.is_recording = False
         self.recording_start_time: Optional[float] = None
 
+        # For dynamic engine selection
+        self._di_container = None
+
         # Setup hotkey callbacks
         self.hotkey_handler.register_hotkey(
             on_press=self.start_recording, on_release=self.stop_recording
@@ -110,10 +113,12 @@ class VoiceRecordingService(QObject):
     def process_recording(self, duration: float, audio_data: Optional[bytes] = None):
         """Process the completed recording"""
         try:
-            # Get transcription from speech engine using real audio data
+            # Get transcription using dynamic engine selection
             if audio_data:
                 print(f"🔄 Processing real audio data ({len(audio_data)} bytes)")
-                original_text = self.speech_engine.transcribe(audio_data)
+                original_text = self._transcribe_with_dynamic_engine_selection(
+                    audio_data
+                )
             else:
                 print("⚠️ No audio data available, using fallback")
                 original_text = "No audio recorded"
@@ -230,6 +235,75 @@ class VoiceRecordingService(QObject):
                 "provider": "Unknown",
                 "accuracy": "Unknown",
             }
+
+    def set_di_container(self, di_container):
+        """Set the DI container for dynamic engine creation"""
+        self._di_container = di_container
+
+    def _transcribe_with_dynamic_engine_selection(self, audio_data: bytes) -> str:
+        """Attempt transcription with OpenAI first (if key available), then fallback engines"""
+
+        # Engine priority list: try OpenAI first if key available
+        engines_to_try = []
+
+        # Check if we have DI container access for dynamic engine creation
+        if self._di_container:
+            # Get current settings to check API keys
+            settings = self._di_container.get_settings_manager()
+
+            # Try OpenAI first if key is available
+            openai_key = settings.get_openai_key()
+            if openai_key and openai_key.strip():
+                engines_to_try.append(("OpenAI Whisper", self._try_openai_whisper))
+
+            # Always add Google Speech as fallback
+            engines_to_try.append(("Google Speech", self._try_google_speech))
+
+        else:
+            # Fallback: use the injected engine (from startup)
+            engines_to_try.append(("Default Engine", self._try_default_engine))
+
+        # Attempt each engine in order
+        for engine_name, engine_func in engines_to_try:
+            try:
+                print(f"🎤 Attempting: {engine_name}")
+                result = engine_func(audio_data)
+
+                if result and result.strip() and not result.startswith("error"):
+                    print(f"✅ Success with: {engine_name}")
+                    return result
+                else:
+                    print(f"⚠️ {engine_name} returned empty/error result")
+
+            except Exception as e:
+                print(f"❌ {engine_name} failed: {e}")
+                continue
+
+        # All engines failed
+        print("❌ All speech engines failed")
+        return "Speech recognition failed"
+
+    def _try_openai_whisper(self, audio_data: bytes) -> str:
+        """Try OpenAI Whisper engine"""
+        if not self._di_container:
+            raise Exception("DI container not available")
+
+        # Create OpenAI engine on demand
+        openai_engine = self._di_container.create_speech_engine_by_name("openai")
+        return openai_engine.transcribe(audio_data)
+
+    def _try_google_speech(self, audio_data: bytes) -> str:
+        """Try Google Speech engine"""
+        if not self._di_container:
+            raise Exception("DI container not available")
+
+        # Create Google engine on demand
+        google_engine = self._di_container.create_speech_engine_by_name("google")
+        return google_engine.transcribe(audio_data)
+
+    def _try_default_engine(self, audio_data: bytes) -> str:
+        """Try the default injected engine"""
+        return self.speech_engine.transcribe(audio_data)
 
     def get_audio_recorder(self) -> IAudioRecorder:
         """Get the audio recorder instance for real-time level monitoring"""

@@ -16,6 +16,7 @@ from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
 from src.ui.settings_view import SettingsView
+from src.ui.custom_instructions_view import CustomInstructionsView
 from src.interfaces.settings import ISettingsManager
 from src.interfaces.speech_factory import ISpeechEngineRegistry
 from typing import List
@@ -341,7 +342,7 @@ class MainWindow(QMainWindow):
         self.history_view = HistoryView(self.data_store)
         self.settings_view = SettingsView(self.settings_manager)
         self.dictionary_view = PlaceholderView("Dictionary")
-        self.instructions_view = PlaceholderView("Instructions")
+        self.instructions_view = CustomInstructionsView(self.settings_manager)
 
         # Add views to stack
         self.content_stack.addWidget(self.history_view)
@@ -550,6 +551,59 @@ class MainWindow(QMainWindow):
         }
         
         #apiKeyInput::placeholder {
+            color: #999;
+        }
+        
+        /* Custom Instructions View Styles */
+        #customInstructionsView {
+            background-color: #f5f5f5 !important;
+            border: none;
+        }
+        
+        #customInstructionsView QWidget {
+            background-color: #f5f5f5 !important;
+        }
+        
+        #customInstructionsTitle {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            background-color: transparent;
+        }
+        
+        #customInstructionsDescription {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            background-color: transparent;
+            line-height: 1.4;
+        }
+        
+        #instructionsSection {
+            background-color: #ffffff !important;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        #customInstructionsInput {
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #ffffff !important;
+            color: #333333;
+            line-height: 1.4;
+        }
+        
+        #customInstructionsInput:focus {
+            border-color: #007AFF;
+            outline: none;
+        }
+        
+        #customInstructionsInput::placeholder {
             color: #999;
         }
         

@@ -11,8 +11,12 @@ class SettingsManager(QObject):
     def __init__(self):
         super().__init__()
 
-        # Just the two API keys for now
-        self._settings = {"cerebras_key": "", "openai_key": ""}
+        # Settings storage (in-memory, no persistence)
+        self._settings = {
+            "cerebras_key": "",
+            "openai_key": "",
+            "custom_instructions": "",
+        }
 
     def get_cerebras_key(self) -> str:
         """Get Cerebras API key"""
@@ -35,6 +39,19 @@ class SettingsManager(QObject):
         self.setting_changed.emit("openai_key", key)
         print(f"⚙️ OpenAI key updated: {'*' * min(len(key), 10) if key else 'empty'}")
         print(f"   DEBUG - Actual OpenAI key: {key}")
+
+    def get_custom_instructions(self) -> str:
+        """Get custom instructions"""
+        return self._settings["custom_instructions"]
+
+    def set_custom_instructions(self, instructions: str) -> None:
+        """Set custom instructions"""
+        self._settings["custom_instructions"] = instructions
+        self.setting_changed.emit("custom_instructions", instructions)
+        print(f"📝 Custom instructions updated: {len(instructions)} characters")
+        print(
+            f"   Preview: {instructions[:50]}{'...' if len(instructions) > 50 else ''}"
+        )
 
     def get_all(self) -> dict:
         """Get all settings"""

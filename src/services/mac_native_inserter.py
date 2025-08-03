@@ -243,11 +243,9 @@ class MacNativeTextInserter(ITextInserter):
                     active_app.processIdentifier()
                 )
 
-                focused_element_ref = objc.nil
+                focused_element_ref = None
                 error = AXUIElementCopyAttributeValue(
-                    app_element,
-                    kAXFocusedUIElementAttribute,
-                    objc.byref(focused_element_ref),
+                    app_element, kAXFocusedUIElementAttribute, focused_element_ref
                 )
 
                 if error == kAXErrorSuccess and focused_element_ref:

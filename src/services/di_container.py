@@ -19,6 +19,16 @@ from src.services.text_processor import TextProcessor
 from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
 from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
 
+# LLM Pipeline imports
+from src.llm.interfaces.llm_client import ILLMClient
+from src.llm.interfaces.prompt_provider import IPromptProvider
+from src.llm.clients.cerebras_client import CerebrasLLMClient, MockLLMClient
+from src.llm.services.prompt_manager import FilePromptProvider, MockPromptProvider
+from src.llm.services.llm_text_processor import (
+    LLMTextProcessor,
+    PassthroughTextProcessor,
+)
+
 
 class DIContainer:
     """Dependency Injection Container for managing application dependencies"""
@@ -32,16 +42,25 @@ class DIContainer:
         self._audio_recorder: Optional[IAudioRecorder] = None
         self._hotkey_handler: Optional[IHotkeyHandler] = None
 
+        # LLM Pipeline singletons
+        self._llm_client: Optional[ILLMClient] = None
+        self._prompt_provider: Optional[IPromptProvider] = None
+
         # Configuration flags
         self._use_mock_audio = False
         self._use_mock_hotkey = False
+        self._use_mock_llm = False
 
     def configure_for_testing(
-        self, use_mock_audio: bool = True, use_mock_hotkey: bool = True
+        self,
+        use_mock_audio: bool = True,
+        use_mock_hotkey: bool = True,
+        use_mock_llm: bool = True,
     ):
         """Configure container to use mock implementations for testing"""
         self._use_mock_audio = use_mock_audio
         self._use_mock_hotkey = use_mock_hotkey
+        self._use_mock_llm = use_mock_llm
 
     def get_settings_manager(self) -> ISettingsManager:
         """Get settings manager singleton"""
@@ -55,10 +74,67 @@ class DIContainer:
             self._data_store = MockDataStore()
         return self._data_store
 
+    def get_llm_client(self) -> ILLMClient:
+        """Get LLM client (Cerebras or mock based on configuration)"""
+        if self._llm_client is None:
+            if self._use_mock_llm:
+                print("🎭 Using mock LLM client")
+                self._llm_client = MockLLMClient()
+            else:
+                try:
+                    settings = self.get_settings_manager()
+                    self._llm_client = CerebrasLLMClient(settings)
+                    if self._llm_client.is_available():
+                        print("✅ Using Cerebras LLM client")
+                    else:
+                        print("⚠️ Cerebras not available, falling back to mock LLM")
+                        self._llm_client = MockLLMClient()
+                except Exception as e:
+                    print(f"⚠️ Falling back to mock LLM client: {e}")
+                    self._llm_client = MockLLMClient()
+        return self._llm_client
+
+    def get_prompt_provider(self) -> IPromptProvider:
+        """Get prompt provider (file-based or mock based on configuration)"""
+        if self._prompt_provider is None:
+            if self._use_mock_llm:
+                print("🎭 Using mock prompt provider")
+                self._prompt_provider = MockPromptProvider()
+            else:
+                try:
+                    self._prompt_provider = FilePromptProvider("prompts")
+                    print("✅ Using file-based prompt provider")
+                except Exception as e:
+                    print(f"⚠️ Falling back to mock prompt provider: {e}")
+                    self._prompt_provider = MockPromptProvider()
+        return self._prompt_provider
+
     def get_text_processor(self) -> ITextProcessor:
-        """Get text processor singleton"""
+        """Get text processor with LLM pipeline"""
         if self._text_processor is None:
-            self._text_processor = TextProcessor()
+            try:
+                llm_client = self.get_llm_client()
+                prompt_provider = self.get_prompt_provider()
+                settings = self.get_settings_manager()
+
+                # Try to create LLM text processor
+                if llm_client.is_available():
+                    self._text_processor = LLMTextProcessor(
+                        llm_client=llm_client,
+                        prompt_provider=prompt_provider,
+                        settings_manager=settings,
+                    )
+                    print("✅ Using LLM text processor pipeline")
+                else:
+                    # Fallback to passthrough
+                    self._text_processor = PassthroughTextProcessor()
+                    print("⚠️ LLM not available, using passthrough text processor")
+
+            except Exception as e:
+                print(f"⚠️ Failed to create LLM text processor: {e}")
+                self._text_processor = PassthroughTextProcessor()
+                print("⚠️ Using passthrough text processor as fallback")
+
         return self._text_processor
 
     def get_speech_registry(self) -> ISpeechEngineRegistry:
@@ -106,13 +182,16 @@ class DIContainer:
 
     def get_recording_service(self) -> VoiceRecordingService:
         """Get recording service with all dependencies injected"""
-        return VoiceRecordingService(
+        recording_service = VoiceRecordingService(
             speech_engine=self.get_speech_engine(),
             data_store=self.get_data_store(),
             hotkey_handler=self.get_hotkey_handler(),
             text_processor=self.get_text_processor(),
             audio_recorder=self.get_audio_recorder(),
         )
+        # Inject DI container for dynamic engine selection
+        recording_service.set_di_container(self)
+        return recording_service
 
     def _register_speech_engines(self):
         """Register all available speech engines with priorities"""
@@ -152,4 +231,6 @@ class DIContainer:
         self._speech_registry = None
         self._audio_recorder = None
         self._hotkey_handler = None
+        self._llm_client = None
+        self._prompt_provider = None
         print("🔄 DI Container reset")
