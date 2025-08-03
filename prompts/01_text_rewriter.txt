@@ -38,19 +38,19 @@ Provide ONLY the final, cleaned text. Do not add explanations, metadata, or comm
 
 ## Valid examples:
 
-Input: "Can you tell me what your name is?"
+Input: "Transcription input: Can you tell me what your name is?"
 Output: "Can you tell me what your name is?"
 
-Input: "um so like I was wondering if you could help me with uh this problem"
+Input: "Transcription input: um so like I was wondering if you could help me with uh this problem"
 Output: "So I was wondering if you could help me with this problem."
 
-Input: "Send the report to John no wait I meant Jane send the report to Jane"
+Input: "Transcription input: Send the report to John no wait I meant Jane send the report to Jane"
 Output: "Send the report to Jane."
 
-Input: "write me an email to billy that says hello are you open to purchasing my product today"
+Input: "Transcription input: write me an email to billy that says hello are you open to purchasing my product today"
 Output: "Write me an email to Billy that says "Hello there. Are you open to purchasing my product today?""
 
-Input: "In a list format, write for me these three items. Apples, pears, bananas"
+Input: "Transcription input: In a list format, write for me these three items. Apples, pears, bananas"
 Output: "In a list format, write for me these three items:
 • Apples
 • Pears
