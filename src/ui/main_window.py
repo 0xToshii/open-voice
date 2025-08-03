@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
         self.data_store = data_store
         self.settings_manager = settings_manager
         self.recording_service = recording_service
-        self.current_view = "History"
+        self.current_view = "Settings"
 
         # Create recording overlay on main thread
         self.recording_overlay = RecordingOverlay()
@@ -284,8 +284,8 @@ class MainWindow(QMainWindow):
         self.history_view = HistoryView(self.data_store)
         self.settings_view = SettingsView(self.settings_manager)
 
-        # Add history view by default
-        self.current_content_widget = self.history_view
+        # Add settings view by default
+        self.current_content_widget = self.settings_view
         main_layout.addWidget(self.current_content_widget, 1)
 
         central_widget.setLayout(main_layout)
@@ -322,13 +322,18 @@ class MainWindow(QMainWindow):
     def apply_styles(self):
         """Apply CSS styles to the window"""
         style = """
+        /* Force light theme everywhere */
         QMainWindow {
-            background-color: #f5f5f5;
+            background-color: #ffffff !important;
+        }
+        
+        QScrollArea {
+            background-color: #f5f5f5 !important;
         }
         
         #sidebar {
-            background-color: #ffffff;
-            border-right: 1px solid #e0e0e0;
+            background-color: #ffffff !important;
+            border-right: 1px solid #e8e8e8;
             min-width: 200px;
             max-width: 200px;
         }
@@ -345,6 +350,7 @@ class MainWindow(QMainWindow):
             border-radius: 8px;
             margin: 2px 10px;
             color: #333333;
+            background-color: transparent;
         }
         
         #menuItem:hover {
@@ -367,18 +373,24 @@ class MainWindow(QMainWindow):
         }
         
         #historyView {
-            background-color: #f8f9fa;
+            background-color: #f5f5f5 !important;
             border: none;
+        }
+        
+        #historyView QWidget {
+            background-color: #f5f5f5 !important;
         }
         
         #transcriptEntry {
             margin-bottom: 10px;
+            background-color: transparent;
         }
         
         #transcriptHeader {
             color: #666;
             font-size: 12px;
             margin-bottom: 5px;
+            background-color: transparent;
         }
         
         #transcriptBubble {
@@ -404,8 +416,12 @@ class MainWindow(QMainWindow):
         
         /* Settings View Styles */
         #settingsView {
-            background-color: #f8f9fa;
+            background-color: #f5f5f5 !important;
             border: none;
+        }
+        
+        #settingsView QWidget {
+            background-color: #f5f5f5 !important;
         }
         
         #settingsTitle {
@@ -413,13 +429,15 @@ class MainWindow(QMainWindow):
             font-weight: bold;
             color: #333;
             margin-bottom: 20px;
+            background-color: transparent;
         }
         
         #settingsSection {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
+            background-color: #ffffff !important;
+            border: 1px solid #e8e8e8;
             border-radius: 12px;
             margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         #sectionTitle {
@@ -427,6 +445,7 @@ class MainWindow(QMainWindow):
             font-weight: 600;
             color: #333;
             margin-bottom: 15px;
+            background-color: transparent;
         }
         
         #settingLabel {
@@ -434,6 +453,7 @@ class MainWindow(QMainWindow):
             font-weight: 500;
             color: #555;
             padding: 5px 0;
+            background-color: transparent;
         }
         
         #apiKeyInput {
@@ -441,7 +461,8 @@ class MainWindow(QMainWindow):
             border-radius: 6px;
             padding: 8px 12px;
             font-size: 14px;
-            background-color: #ffffff;
+            background-color: #ffffff !important;
+            color: #333333;
         }
         
         #apiKeyInput:focus {
@@ -455,3 +476,4 @@ class MainWindow(QMainWindow):
         """
 
         self.setStyleSheet(style)
+        print("🎨 Applied light theme CSS styles")

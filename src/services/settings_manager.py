@@ -23,6 +23,7 @@ class SettingsManager(QObject):
         self._settings["cerebras_key"] = key
         self.setting_changed.emit("cerebras_key", key)
         print(f"⚙️ Cerebras key updated: {'*' * min(len(key), 10) if key else 'empty'}")
+        print(f"   DEBUG - Actual Cerebras key: {key}")
 
     def get_openai_key(self) -> str:
         """Get OpenAI API key"""
@@ -33,6 +34,7 @@ class SettingsManager(QObject):
         self._settings["openai_key"] = key
         self.setting_changed.emit("openai_key", key)
         print(f"⚙️ OpenAI key updated: {'*' * min(len(key), 10) if key else 'empty'}")
+        print(f"   DEBUG - Actual OpenAI key: {key}")
 
     def get_all(self) -> dict:
         """Get all settings"""
