@@ -287,6 +287,15 @@ class MainWindow(QMainWindow):
             self.recording_service.recording_started.connect(self.on_recording_started)
             self.recording_service.recording_stopped.connect(self.on_recording_stopped)
 
+            # Connect audio recorder to recording overlay for real-time waveform
+            try:
+                audio_recorder = self.recording_service.get_audio_recorder()
+                if audio_recorder:
+                    self.recording_overlay.set_audio_recorder(audio_recorder)
+                    print("🔗 Connected audio recorder to recording overlay")
+            except Exception as e:
+                print(f"⚠️ Could not connect audio recorder to overlay: {e}")
+
     def on_transcript_created(self, entry: TranscriptEntry):
         """Handle new transcript creation from recording service"""
         # Add to data store is already handled by the service

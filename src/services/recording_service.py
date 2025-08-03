@@ -205,6 +205,10 @@ class VoiceRecordingService(QObject):
                 "accuracy": "Unknown",
             }
 
+    def get_audio_recorder(self) -> IAudioRecorder:
+        """Get the audio recorder instance for real-time level monitoring"""
+        return self.audio_recorder
+
 
 class MockVoiceRecordingService(QObject):
     """Mock recording service for testing without dependencies"""

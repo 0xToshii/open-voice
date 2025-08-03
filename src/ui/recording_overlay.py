@@ -1,6 +1,8 @@
-from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout
 from PySide6.QtCore import Qt, QTimer, QRect
 from PySide6.QtGui import QPainter, QColor, QFont
+from src.ui.audio_waveform import AudioWaveformWidget
+from typing import Optional, Any
 import sys
 
 
@@ -26,34 +28,46 @@ class RecordingOverlay(QWidget):
         # Ensure overlay doesn't activate when shown
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
 
-        # Set size and position
-        self.setFixedSize(200, 50)
+        # Set size and position for waveform
+        self.setFixedSize(250, 70)  # Larger to accommodate waveform
         self.center_at_bottom()
 
-        # Setup layout
-        layout = QHBoxLayout()
-        layout.setContentsMargins(15, 10, 15, 10)
-        layout.setSpacing(10)
-
-        # Recording indicator
-        self.recording_dot = QLabel("🔴")
-        self.recording_dot.setObjectName("recordingDot")
+        # Setup main layout
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(20, 15, 20, 15)
+        main_layout.setSpacing(8)
 
         # Recording text
         self.recording_text = QLabel("Recording...")
         self.recording_text.setObjectName("recordingText")
+        self.recording_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(self.recording_dot)
-        layout.addWidget(self.recording_text)
-        layout.addStretch()
+        # Audio waveform widget
+        self.waveform = AudioWaveformWidget(bar_count=15)
+        self.waveform.setObjectName("audioWaveform")
 
-        self.setLayout(layout)
+        # Center the waveform
+        waveform_layout = QHBoxLayout()
+        waveform_layout.addStretch()
+        waveform_layout.addWidget(self.waveform)
+        waveform_layout.addStretch()
+
+        main_layout.addWidget(self.recording_text)
+        main_layout.addLayout(waveform_layout)
+
+        self.setLayout(main_layout)
 
         # Apply styles
         self.apply_styles()
 
         # Start hidden
         self.hide()
+
+        # Track audio recorder for real-time updates
+        self.audio_recorder: Optional[Any] = None
+        self.audio_update_timer = QTimer()
+        self.audio_update_timer.timeout.connect(self.update_audio_levels)
+        self.audio_update_timer.setInterval(33)  # ~30fps for audio level updates
 
     def setup_animation(self):
         """Setup pulsing animation for recording indicator"""
@@ -72,8 +86,12 @@ class RecordingOverlay(QWidget):
             y = screen_rect.height() - self.height() - 50  # 50px from bottom
             self.move(x, y)
 
+    def set_audio_recorder(self, audio_recorder):
+        """Set the audio recorder for real-time level updates"""
+        self.audio_recorder = audio_recorder
+
     def show_recording(self):
-        """Show the recording overlay with animation"""
+        """Show the recording overlay with waveform animation"""
         if self.is_recording:
             return
 
@@ -81,7 +99,12 @@ class RecordingOverlay(QWidget):
         self.center_at_bottom()  # Ensure proper positioning
         self.show()
         self.raise_()  # Bring to front
-        self.animation_timer.start()
+
+        # Start waveform animation
+        self.waveform.start_animation()
+
+        # Start audio level updates
+        self.audio_update_timer.start()
 
     def hide_recording(self):
         """Hide the recording overlay"""
@@ -89,15 +112,34 @@ class RecordingOverlay(QWidget):
             return
 
         self.is_recording = False
+
+        # Stop animations
         self.animation_timer.stop()
+        self.audio_update_timer.stop()
+        self.waveform.stop_animation()
+
         self.hide()
 
+    def update_audio_levels(self):
+        """Update waveform with real-time audio levels"""
+        if self.audio_recorder and self.is_recording:
+            try:
+                level = self.audio_recorder.get_audio_level()
+                self.waveform.update_audio_level(level)
+            except Exception as e:
+                # Fallback to mock levels if audio recorder fails
+                import random
+
+                mock_level = random.uniform(0.1, 0.7)
+                self.waveform.update_audio_level(mock_level)
+
     def animate_pulse(self):
-        """Animate the pulsing recording indicator"""
+        """Animate the recording text (no longer needed with waveform)"""
+        # Text pulsing effect - alternate opacity
         if self.pulse_state:
-            self.recording_dot.setText("⚫")  # Dark dot
+            self.recording_text.setStyleSheet("color: rgba(255, 255, 255, 150);")
         else:
-            self.recording_dot.setText("🔴")  # Red dot
+            self.recording_text.setStyleSheet("color: rgba(255, 255, 255, 255);")
 
         self.pulse_state = not self.pulse_state
 
