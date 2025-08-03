@@ -40,11 +40,9 @@ class CerebrasLLMClient(ILLMClient):
         try:
             print(f"🧠 Cerebras LLM: Processing text with {self.model}")
             print(
-                f"   System prompt: {system_prompt[:100]}{'...' if len(system_prompt) > 100 else ''}"
+                f" - System prompt: {system_prompt[:100]}{'...' if len(system_prompt) > 100 else ''}"
             )
-            print(
-                f"   Input: {user_input[:100]}{'...' if len(user_input) > 100 else ''}"
-            )
+            print(print(f" - Input: {user_input}"))
 
             response = requests.post(
                 f"{self.api_base_url}/chat/completions",
@@ -62,9 +60,7 @@ class CerebrasLLMClient(ILLMClient):
 
             generated_text = response_data["choices"][0]["message"]["content"].strip()
 
-            print(
-                f"   Output: {generated_text[:100]}{'...' if len(generated_text) > 100 else ''}"
-            )
+            print(f" - Output: {generated_text}")
 
             return generated_text
 
@@ -102,27 +98,14 @@ class MockLLMClient(ILLMClient):
         self.call_count = 0
 
     def generate(self, system_prompt: str, user_input: str) -> str:
-        """Return mock processed text"""
+        """Return user input as-is (passthrough for testing)"""
         self.call_count += 1
 
-        print(f"🧠 Mock LLM: Call #{self.call_count}")
-        print(
-            f"   System prompt: {system_prompt[:50]}{'...' if len(system_prompt) > 50 else ''}"
-        )
+        print(f"🧠 Mock LLM: Call #{self.call_count} (passthrough)")
         print(f"   Input: {user_input}")
+        print(f"   Output: {user_input}")
 
-        # Simple mock processing - just add a tag to show it was processed
-        if "grammar" in system_prompt.lower():
-            result = f"{user_input.strip().capitalize()}."
-        elif "style" in system_prompt.lower():
-            result = user_input.replace("um", "").replace("uh", "").strip()
-        elif "custom" in system_prompt.lower():
-            result = user_input.lower()  # Mock custom instruction: make lowercase
-        else:
-            result = f"[LLM-{self.call_count}] {user_input.strip()}"
-
-        print(f"   Output: {result}")
-        return result
+        return user_input
 
     def is_available(self) -> bool:
         """Mock is always available"""

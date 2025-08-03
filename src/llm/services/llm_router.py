@@ -59,7 +59,8 @@ class LLMRouter(ILLMRouter):
                     continue
 
                 # Attempt processing
-                result = llm_client.generate(system_prompt, user_input)
+                user_input_prompt = "Input: " + user_input
+                result = llm_client.generate(system_prompt, user_input_prompt)
 
                 # Check if result is valid
                 if result and result.strip():
