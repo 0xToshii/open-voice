@@ -8,8 +8,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 from src.ui.main_window import MainWindow
 from src.data.mock_data_store import MockDataStore
-from src.engines.mock_speech import MockSpeechEngine
-from src.engines.speech_engine import SpeechRecognitionEngine
+from src.engines.speech_factory import SpeechEngineFactory
 from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
 from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
 from src.services.text_processor import TextProcessor
@@ -31,13 +30,11 @@ def main():
     data_store = MockDataStore()
     text_processor = TextProcessor()
 
-    # Try to use real speech engine, fallback to mock if issues
-    try:
-        speech_engine = SpeechRecognitionEngine(engine_type="google")
-        print("✅ Using real Google Speech Recognition")
-    except Exception as e:
-        print(f"⚠️ Falling back to mock speech engine: {e}")
-        speech_engine = MockSpeechEngine()
+    # Create settings manager first (needed for speech engine)
+    settings_manager = SettingsManager()
+
+    # Use speech engine factory to get best available engine
+    speech_engine = SpeechEngineFactory.create_best_engine(settings_manager)
 
     # Try to use real audio recorder, fallback to mock if microphone issues
     try:
@@ -54,9 +51,6 @@ def main():
     except Exception as e:
         print(f"⚠️ Falling back to mock hotkey handler: {e}")
         hotkey_handler = MockHotkeyHandler()
-
-    # Create settings manager
-    settings_manager = SettingsManager()
 
     # Create recording service with all dependencies
     recording_service = VoiceRecordingService(

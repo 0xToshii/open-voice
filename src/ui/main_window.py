@@ -16,6 +16,7 @@ from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
 from src.ui.settings_view import SettingsView
 from src.interfaces.settings import ISettingsManager
+from src.engines.speech_factory import SpeechEngineFactory
 from typing import List
 from datetime import datetime
 
@@ -274,6 +275,9 @@ class MainWindow(QMainWindow):
         if self.recording_service:
             self.connect_recording_service()
 
+        # Connect settings changes to speech engine switching
+        self.connect_settings_changes()
+
     def connect_recording_service(self):
         """Connect signals from the recording service"""
         if self.recording_service:
@@ -363,6 +367,31 @@ class MainWindow(QMainWindow):
         """Add a new transcript entry to the history"""
         if self.current_view == "History":
             self.history_view.add_new_transcript(entry)
+
+    def connect_settings_changes(self):
+        """Connect to settings changes to switch speech engines dynamically"""
+        self.settings_manager.setting_changed.connect(self.on_setting_changed)
+
+    def on_setting_changed(self, setting_name: str, value: str):
+        """Handle settings changes - switch speech engine when OpenAI key changes"""
+        if setting_name == "openai_key" and self.recording_service:
+            try:
+                # Create new speech engine based on updated settings
+                new_engine = SpeechEngineFactory.create_best_engine(
+                    self.settings_manager
+                )
+
+                # Update the recording service
+                self.recording_service.set_speech_engine(new_engine)
+
+                # Log the engine switch
+                engine_info = self.recording_service.get_speech_engine_info()
+                print(
+                    f"🔄 Speech engine switched to: {engine_info.get('name', 'Unknown')}"
+                )
+
+            except Exception as e:
+                print(f"❌ Failed to switch speech engine: {e}")
 
     def apply_styles(self):
         """Apply CSS styles to the window"""

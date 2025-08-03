@@ -186,6 +186,25 @@ class VoiceRecordingService(QObject):
         else:
             print("❌ Cannot set text inserter: not available or invalid")
 
+    def set_speech_engine(self, speech_engine: ISpeechEngine):
+        """Change the speech recognition engine"""
+        if speech_engine and speech_engine.is_available():
+            self.speech_engine = speech_engine
+            print(f"🔧 Speech engine changed")
+        else:
+            print("❌ Cannot set speech engine: not available or invalid")
+
+    def get_speech_engine_info(self) -> dict:
+        """Get information about the current speech engine"""
+        if hasattr(self.speech_engine, "get_model_info"):
+            return self.speech_engine.get_model_info()
+        else:
+            return {
+                "name": type(self.speech_engine).__name__,
+                "provider": "Unknown",
+                "accuracy": "Unknown",
+            }
+
 
 class MockVoiceRecordingService(QObject):
     """Mock recording service for testing without dependencies"""
