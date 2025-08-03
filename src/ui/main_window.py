@@ -393,9 +393,9 @@ class MainWindow(QMainWindow):
             background-color: transparent;
         }
         
-        #transcriptBubble {
-            background-color: #333;
-            color: white;
+        #historyView #transcriptBubble {
+            background-color: #4a4a4a !important;
+            color: white !important;
             padding: 15px 20px;
             border-radius: 20px;
             font-size: 14px;
