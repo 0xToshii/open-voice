@@ -75,6 +75,9 @@ class VoiceRecordingService(QObject):
         self.is_recording = True
         self.recording_start_time = time.time()
 
+        # Store current focus for Mac-native text insertion
+        self._store_focus_if_supported()
+
         # Start real audio recording
         self.audio_recorder.start_recording()
 
@@ -148,8 +151,25 @@ class VoiceRecordingService(QObject):
         except Exception as e:
             print(f"❌ Error processing recording: {e}")
 
+    def _store_focus_if_supported(self):
+        """Store current focus if the text inserter supports focus management"""
+        try:
+            if hasattr(self.text_inserter, "store_current_focus"):
+                print("💾 Storing focus before recording...")
+                success = self.text_inserter.store_current_focus()
+                if success:
+                    print("✅ Focus stored successfully")
+                else:
+                    print(
+                        "⚠️ Could not store focus, will use current focus when inserting"
+                    )
+            else:
+                print("ℹ️ Text inserter does not support focus management")
+        except Exception as e:
+            print(f"❌ Error storing focus: {e}")
+
     def insert_text(self, text: str, transcript_id: int):
-        """Insert text using simple clipboard method"""
+        """Insert text with focus management if supported"""
         try:
             if not text.strip():
                 print("⚠️ Empty text, skipping insertion")
@@ -158,8 +178,14 @@ class VoiceRecordingService(QObject):
 
             print(f"📝 Inserting text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
 
-            # Use simple clipboard insertion - user clicks where they want text
-            success = self.text_inserter.insert_text(text)
+            # Try focus-aware insertion first if supported
+            success = False
+            if hasattr(self.text_inserter, "insert_text_with_focus_management"):
+                print("🎯 Using focus-aware text insertion")
+                success = self.text_inserter.insert_text_with_focus_management(text)
+            else:
+                print("📋 Using standard text insertion")
+                success = self.text_inserter.insert_text(text)
 
             if success:
                 print(f"✅ Text insertion successful")

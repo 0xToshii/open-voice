@@ -14,8 +14,22 @@ if platform.system() == "Darwin":
             kCGHIDEventTap,
             CGEventSetFlags,
             kCGEventFlagMaskCommand,
+            CGWindowListCopyWindowInfo,
+            kCGWindowListOptionOnScreenOnly,
+            kCGNullWindowID,
         )
-        from ApplicationServices import AXIsProcessTrusted
+        from ApplicationServices import (
+            AXIsProcessTrusted,
+            AXUIElementCreateApplication,
+            AXUIElementCreateSystemWide,
+            AXUIElementCopyAttributeValue,
+            AXUIElementSetAttributeValue,
+            kAXErrorSuccess,
+            kAXFocusedUIElementAttribute,
+            kAXFocusedWindowAttribute,
+            kAXValueAttribute,
+            kAXSelectedTextAttribute,
+        )
 
         MAC_DEPENDENCIES_AVAILABLE = True
     except ImportError as e:
@@ -31,6 +45,11 @@ class MacNativeTextInserter(ITextInserter):
     def __init__(self):
         self.clipboard_delay = 0.1
         self.key_event_delay = 0.05
+
+        # Focus management
+        self._stored_focus = None
+        self._stored_app = None
+        self._focus_restoration_delay = 0.2
 
     def insert_text(self, text: str) -> bool:
         """Insert text using Mac-native APIs"""
@@ -199,6 +218,173 @@ class MacNativeTextInserter(ITextInserter):
     def get_name(self) -> str:
         """Get the name of this inserter"""
         return "MacNativeInserter"
+
+    def store_current_focus(self) -> bool:
+        """Store the current focus state before recording starts"""
+        try:
+            print("💾 Storing current focus state...")
+
+            # Get the system-wide accessibility element
+            system_element = AXUIElementCreateSystemWide()
+
+            # Get the currently focused application
+            workspace = NSWorkspace.sharedWorkspace()
+            active_app = workspace.frontmostApplication()
+
+            if active_app:
+                self._stored_app = {
+                    "name": active_app.localizedName(),
+                    "bundle_id": active_app.bundleIdentifier(),
+                    "pid": active_app.processIdentifier(),
+                }
+
+                # Get the focused UI element within the app
+                app_element = AXUIElementCreateApplication(
+                    active_app.processIdentifier()
+                )
+
+                focused_element_ref = objc.nil
+                error = AXUIElementCopyAttributeValue(
+                    app_element,
+                    kAXFocusedUIElementAttribute,
+                    objc.byref(focused_element_ref),
+                )
+
+                if error == kAXErrorSuccess and focused_element_ref:
+                    self._stored_focus = focused_element_ref
+                    print(
+                        f"✅ Stored focus: {self._stored_app['name']} (PID: {self._stored_app['pid']})"
+                    )
+                    return True
+                else:
+                    print("⚠️ Could not get focused UI element, storing app only")
+                    self._stored_focus = None
+                    return True
+            else:
+                print("❌ No active app to store focus for")
+                return False
+
+        except Exception as e:
+            print(f"❌ Failed to store focus: {e}")
+            return False
+
+    def restore_focus(self) -> bool:
+        """Restore the previously stored focus state"""
+        try:
+            if not self._stored_app:
+                print("⚠️ No stored focus to restore")
+                return False
+
+            print(f"🔄 Restoring focus to {self._stored_app['name']}...")
+
+            # First, activate the stored application
+            workspace = NSWorkspace.sharedWorkspace()
+
+            # Find the app by bundle ID
+            running_apps = workspace.runningApplications()
+            target_app = None
+
+            for app in running_apps:
+                if app.bundleIdentifier() == self._stored_app["bundle_id"]:
+                    target_app = app
+                    break
+
+            if target_app:
+                # Activate the application
+                success = target_app.activateWithOptions_(
+                    0
+                )  # NSApplicationActivateAllWindows
+                if success:
+                    print(f"✅ Activated app: {self._stored_app['name']}")
+
+                    # Wait for app activation
+                    time.sleep(self._focus_restoration_delay)
+
+                    # If we have a specific focused element, try to restore it
+                    if self._stored_focus:
+                        try:
+                            # Attempt to set focus to the stored element
+                            app_element = AXUIElementCreateApplication(
+                                self._stored_app["pid"]
+                            )
+                            error = AXUIElementSetAttributeValue(
+                                app_element,
+                                kAXFocusedUIElementAttribute,
+                                self._stored_focus,
+                            )
+
+                            if error == kAXErrorSuccess:
+                                print("✅ Restored specific UI element focus")
+                            else:
+                                print(
+                                    "⚠️ Could not restore specific focus, app focus restored"
+                                )
+                        except Exception as e:
+                            print(f"⚠️ Error restoring specific focus: {e}")
+
+                    return True
+                else:
+                    print(f"❌ Failed to activate app: {self._stored_app['name']}")
+                    return False
+            else:
+                print(f"❌ Could not find app: {self._stored_app['bundle_id']}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Failed to restore focus: {e}")
+            return False
+        finally:
+            # Clear stored focus
+            self._stored_focus = None
+            self._stored_app = None
+
+    def insert_text_with_focus_management(self, text: str) -> bool:
+        """Insert text with proper focus management"""
+        if not self.is_available():
+            print("❌ Mac native inserter not available")
+            return False
+
+        if not text:
+            print("⚠️ Empty text provided for insertion")
+            return True
+
+        try:
+            print(
+                f"🍎 Mac Native: Inserting text with focus management ({len(text)} chars)"
+            )
+
+            # Step 1: Check accessibility permissions
+            if not self._check_accessibility_permissions():
+                print("❌ Accessibility permissions required for text insertion")
+                return False
+
+            # Step 2: Restore focus if we have stored focus
+            if self._stored_app:
+                if not self.restore_focus():
+                    print("⚠️ Focus restoration failed, proceeding with current focus")
+            else:
+                # If no stored focus, just get current app info
+                focused_app = self._get_focused_app()
+                print(f"🎯 Current focused app: {focused_app}")
+
+            # Step 3: Copy text to clipboard using native pasteboard
+            if not self._copy_to_pasteboard(text):
+                print("❌ Failed to copy text to pasteboard")
+                return False
+
+            # Step 4: Send Cmd+V using CGEvent (most reliable)
+            if not self._send_paste_command():
+                print("❌ Failed to send paste command")
+                return False
+
+            print(
+                f"✅ Successfully inserted {len(text)} characters with focus management"
+            )
+            return True
+
+        except Exception as e:
+            print(f"❌ Mac native text insertion with focus management failed: {e}")
+            return False
 
     def request_permissions(self) -> bool:
         """Request accessibility permissions from the user"""
