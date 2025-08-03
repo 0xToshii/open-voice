@@ -24,32 +24,23 @@ class CrossPlatformTextInserter(ITextInserter):
 
         # Configure pyautogui
         pyautogui.FAILSAFE = True  # Move mouse to corner to abort
-        pyautogui.PAUSE = 0.01  # Small delay between operations
+        pyautogui.PAUSE = 0.1  # Increase delay for reliable key combinations
 
     def insert_text(self, text: str) -> bool:
-        """Insert text using the configured method with focus preservation"""
+        """Insert text using simple clipboard method (no focus management)"""
         if not text:
             print("⚠️ Empty text provided for insertion")
             return True  # Empty text is "successfully" inserted
 
         try:
-            # Remember which app was focused before we started
-            focused_app = self._get_focused_app()
-            print(f"🎯 Focused app before insertion: {focused_app}")
-
-            # Perform the text insertion
-            success = False
-            if self.method == "typing":
-                success = self._insert_via_typing_with_focus(text, focused_app)
-            elif self.method == "clipboard":
-                success = self._insert_via_clipboard_with_focus(text, focused_app)
-            elif self.method == "hybrid":
-                success = self._insert_via_hybrid_with_focus(text, focused_app)
+            # Simple clipboard insertion only
+            if self.method == "clipboard":
+                return self._insert_via_clipboard(text)
             else:
-                print(f"❌ Unknown insertion method: {self.method}")
-                return False
-
-            return success
+                print(
+                    f"⚠️ Simplified mode only supports clipboard method, got: {self.method}"
+                )
+                return self._insert_via_clipboard(text)
 
         except Exception as e:
             print(f"❌ Text insertion failed: {e}")
@@ -125,12 +116,7 @@ class CrossPlatformTextInserter(ITextInserter):
     def _insert_via_clipboard_with_focus(
         self, text: str, focused_app: Optional[str]
     ) -> bool:
-        """Insert text via clipboard with focus restoration"""
-        # Restore focus to target app first
-        if focused_app:
-            self._restore_focus(focused_app)
-            time.sleep(0.1)  # Small delay to ensure focus change takes effect
-
+        """Insert text via clipboard (no focus restoration)"""
         return self._insert_via_clipboard(text)
 
     def _insert_via_hybrid_with_focus(
@@ -181,25 +167,68 @@ class CrossPlatformTextInserter(ITextInserter):
     def _insert_via_clipboard(self, text: str) -> bool:
         """Insert text via clipboard and paste"""
         try:
-            print(
-                f"📋 Clipboard insertion: '{text[:50]}{'...' if len(text) > 50 else ''}'"
-            )
+            print(f"📋 DEBUG: Input text length: {len(text)}")
+            print(f"📋 DEBUG: Input text content: '{text}'")
 
             # Backup current clipboard content
             try:
                 original_clipboard = pyperclip.paste()
-            except Exception:
-                original_clipboard = ""  # Clipboard might be empty or inaccessible
+                print(f"📋 DEBUG: Original clipboard: '{original_clipboard[:30]}...'")
+            except Exception as e:
+                print(f"📋 DEBUG: Could not read original clipboard: {e}")
+                original_clipboard = ""
 
             # Copy our text to clipboard
+            print(f"📋 DEBUG: Setting clipboard to: '{text}'")
             pyperclip.copy(text)
             time.sleep(self.clipboard_delay)  # Allow clipboard to update
 
+            # Verify clipboard was set correctly
+            try:
+                clipboard_check = pyperclip.paste()
+                print(f"📋 DEBUG: Clipboard verification: '{clipboard_check}'")
+                if clipboard_check != text:
+                    print(
+                        f"⚠️ WARNING: Clipboard mismatch! Expected '{text}', got '{clipboard_check}'"
+                    )
+            except Exception as e:
+                print(f"📋 DEBUG: Could not verify clipboard: {e}")
+
             # Paste using Cmd+V (Mac) or Ctrl+V (others)
-            import platform
+            print(f"📋 DEBUG: Executing paste command...")
+            # Longer delay to ensure clipboard is ready and feels more natural
+            time.sleep(0.2)
 
             if platform.system() == "Darwin":  # macOS
-                pyautogui.hotkey("cmd", "v")
+                print(
+                    f"📋 DEBUG: Using AppleScript paste (pyautogui is broken on this system)"
+                )
+                try:
+                    # Use AppleScript for reliable Cmd+V on macOS
+                    result = subprocess.run(
+                        [
+                            "osascript",
+                            "-e",
+                            'tell application "System Events" to keystroke "v" using command down',
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=2,
+                    )
+
+                    if result.returncode == 0:
+                        print(f"📋 DEBUG: AppleScript paste completed successfully")
+                    else:
+                        print(f"📋 DEBUG: AppleScript paste failed: {result.stderr}")
+                        # Fallback to broken pyautogui (better than nothing)
+                        print(f"📋 DEBUG: Trying pyautogui fallback...")
+                        pyautogui.hotkey("cmd", "v")
+
+                except Exception as e:
+                    print(f"📋 DEBUG: AppleScript paste failed: {e}")
+                    # Fallback to broken pyautogui
+                    print(f"📋 DEBUG: Trying pyautogui fallback...")
+                    pyautogui.hotkey("cmd", "v")
             else:
                 pyautogui.hotkey("ctrl", "v")
 
@@ -209,8 +238,9 @@ class CrossPlatformTextInserter(ITextInserter):
             # Restore original clipboard content
             try:
                 pyperclip.copy(original_clipboard)
+                print(f"📋 DEBUG: Restored original clipboard")
             except Exception:
-                pass  # If restoration fails, don't break the insertion
+                print(f"📋 DEBUG: Could not restore original clipboard")
 
             print(f"✅ Successfully pasted {len(text)} characters")
             return True

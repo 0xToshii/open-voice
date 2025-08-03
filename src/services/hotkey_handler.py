@@ -2,6 +2,8 @@ from src.interfaces.hotkey import IHotkeyHandler
 from pynput import keyboard
 from typing import Callable, Optional
 import threading
+import subprocess
+import platform
 
 
 class FnKeyHandler(IHotkeyHandler):
@@ -16,6 +18,7 @@ class FnKeyHandler(IHotkeyHandler):
         self.cmd_pressed = False
         self.shift_pressed = False
         self.space_pressed = False
+        self.captured_app = None  # Store captured app for callback
 
     def register_hotkey(self, on_press: Callable, on_release: Callable) -> None:
         """Register callbacks for Fn key press and release"""

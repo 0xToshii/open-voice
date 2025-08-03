@@ -56,20 +56,20 @@ class TextInserterFactory:
     @staticmethod
     def _create_cross_platform_inserter() -> ITextInserter:
         """
-        Create cross-platform text inserter
+        Create cross-platform text inserter (clipboard-only for simplicity)
 
         Returns:
             ITextInserter: Cross-platform text inserter
         """
-        inserter = CrossPlatformTextInserter(method="hybrid")
+        inserter = CrossPlatformTextInserter(method="clipboard")
 
         if inserter.is_available():
-            print("✅ Using cross-platform text insertion (pyautogui + pyperclip)")
+            print("✅ Using clipboard-only text insertion (simple and reliable)")
             capabilities = inserter.get_capabilities()
             print(f"   Method: {capabilities['method']}")
             print(f"   Platform: {capabilities['platform']}")
         else:
-            print("❌ Warning: Cross-platform text insertion may not work properly")
+            print("❌ Warning: Clipboard text insertion may not work properly")
 
         return inserter
 

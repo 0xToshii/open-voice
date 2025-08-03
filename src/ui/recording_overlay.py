@@ -15,12 +15,16 @@ class RecordingOverlay(QWidget):
 
     def setup_ui(self):
         """Setup the overlay UI"""
-        # Make the widget frameless and always on top
+        # Make the widget frameless and always on top, but never steal focus
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.Tool
+            | Qt.WindowType.WindowDoesNotAcceptFocus
         )
+
+        # Ensure overlay doesn't activate when shown
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
 
         # Set size and position
         self.setFixedSize(200, 50)
