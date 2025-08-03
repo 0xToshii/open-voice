@@ -263,11 +263,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Open Voice")
         self.setMinimumSize(800, 600)
 
-        # Configure window to never steal focus
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowDoesNotAcceptFocus)
-
-        # Ensure window doesn't activate automatically
-        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        # Allow window to accept focus for input fields
+        # Note: Removed WindowDoesNotAcceptFocus to enable text input
 
         # Central widget
         central_widget = QWidget()

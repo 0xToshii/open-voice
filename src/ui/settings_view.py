@@ -69,7 +69,8 @@ class SettingsView(QScrollArea):
         self.cerebras_input = QLineEdit()
         self.cerebras_input.setObjectName("apiKeyInput")
         self.cerebras_input.setPlaceholderText("Enter your Cerebras API key...")
-        self.cerebras_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.cerebras_input.setEnabled(True)
+        self.cerebras_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.cerebras_input.setText(self.settings_manager.get_cerebras_key())
 
         cerebras_row.addWidget(cerebras_label)
@@ -85,7 +86,8 @@ class SettingsView(QScrollArea):
         self.openai_input = QLineEdit()
         self.openai_input.setObjectName("apiKeyInput")
         self.openai_input.setPlaceholderText("Enter your OpenAI API key...")
-        self.openai_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.openai_input.setEnabled(True)
+        self.openai_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.openai_input.setText(self.settings_manager.get_openai_key())
 
         openai_row.addWidget(openai_label)
