@@ -517,7 +517,6 @@ class MainWindow(QMainWindow):
             border: 1px solid #e8e8e8;
             border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         #sectionTitle {

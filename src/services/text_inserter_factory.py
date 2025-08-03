@@ -35,19 +35,21 @@ class TextInserterFactory:
             ITextInserter or None: Mac-native inserter if available, None otherwise
         """
         try:
-            # Future implementation: Import and test Mac-native inserter
-            # from src.services.mac_native_inserter import MacNativeTextInserter
-            # inserter = MacNativeTextInserter()
-            # if inserter.is_available():
-            #     print("✅ Using Mac-native text insertion (PyObjC)")
-            #     return inserter
+            from src.services.mac_native_inserter import MacNativeTextInserter
 
-            # For now, this is not implemented
-            print("🔄 Mac-native text insertion not yet implemented")
-            return None
+            inserter = MacNativeTextInserter()
+            if inserter.is_available():
+                print("✅ Using Mac-native text insertion (PyObjC)")
+                capabilities = inserter.get_capabilities()
+                print(f"   Method: {capabilities['method']}")
+                print(f"   Reliability: {capabilities['reliability']}")
+                return inserter
+            else:
+                print("🔄 Mac-native text insertion not available")
+                return None
 
-        except ImportError:
-            print("⚠️ PyObjC not available, using cross-platform insertion")
+        except ImportError as e:
+            print(f"⚠️ PyObjC not available: {e}")
             return None
         except Exception as e:
             print(f"⚠️ Mac-native text insertion failed to initialize: {e}")

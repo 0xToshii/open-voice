@@ -36,26 +36,41 @@ class PyAudioRecorder(IAudioRecorder):
             devices = sd.query_devices()
             for i, device in enumerate(devices):
                 device_type = ""
-                if device["max_inputs"] > 0:
+
+                # Safely check for input/output capabilities
+                max_inputs = device.get("max_inputs", 0)
+                max_outputs = device.get("max_outputs", 0)
+
+                if max_inputs > 0:
                     device_type += "INPUT "
-                if device["max_outputs"] > 0:
+                if max_outputs > 0:
                     device_type += "OUTPUT"
 
                 default_marker = ""
-                if i == sd.default.device[0]:  # Default input
-                    default_marker = " ← DEFAULT INPUT"
-                elif i == sd.default.device[1]:  # Default output
-                    default_marker = " ← DEFAULT OUTPUT"
+                try:
+                    default_device = sd.default.device
+                    if isinstance(default_device, (list, tuple)):
+                        if len(default_device) > 0 and i == default_device[0]:
+                            default_marker = " ← DEFAULT INPUT"
+                        elif len(default_device) > 1 and i == default_device[1]:
+                            default_marker = " ← DEFAULT OUTPUT"
+                    else:
+                        if i == default_device:
+                            default_marker = " ← DEFAULT"
+                except:
+                    pass
 
-                print(f"  {i}: {device['name']} ({device_type}){default_marker}")
+                device_name = device.get("name", "Unknown Device")
+                print(f"  {i}: {device_name} ({device_type}){default_marker}")
 
             # Show which device we'll use
-            default_input = (
-                sd.default.device[0]
-                if isinstance(sd.default.device, (list, tuple))
-                else sd.default.device
-            )
-            print(f"🎤 Will use device: {default_input}\n")
+            try:
+                default_input = sd.default.device
+                if isinstance(default_input, (list, tuple)):
+                    default_input = default_input[0] if len(default_input) > 0 else None
+                print(f"🎤 Will use device: {default_input}\n")
+            except Exception as e:
+                print(f"🎤 Using system default device\n")
 
         except Exception as e:
             print(f"❌ Error listing audio devices: {e}")
