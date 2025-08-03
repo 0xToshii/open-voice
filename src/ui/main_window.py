@@ -210,6 +210,45 @@ class HistoryView(QScrollArea):
         self.load_transcripts()
 
 
+class PlaceholderView(QScrollArea):
+    """Placeholder view for unimplemented pages"""
+
+    def __init__(self, title: str):
+        super().__init__()
+        self.title = title
+        self.setup_ui()
+
+    def setup_ui(self):
+        self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        # Content widget
+        content_widget = QWidget()
+        content_widget.setObjectName("placeholderContent")
+        layout = QVBoxLayout()
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(20)
+
+        # Title
+        title_label = QLabel(self.title)
+        title_label.setObjectName("placeholderTitle")
+        layout.addWidget(title_label)
+
+        # Description
+        desc_label = QLabel(
+            f"The {self.title.lower()} feature will be implemented here."
+        )
+        desc_label.setObjectName("placeholderDesc")
+        layout.addWidget(desc_label)
+
+        layout.addStretch()
+        content_widget.setLayout(layout)
+        self.setWidget(content_widget)
+
+        self.setObjectName("placeholderView")
+
+
 class MainWindow(QMainWindow):
     """Main application window"""
 
@@ -281,9 +320,11 @@ class MainWindow(QMainWindow):
         self.sidebar.menu_item_clicked.connect(self.on_menu_item_clicked)
         main_layout.addWidget(self.sidebar)
 
-        # Content area - create both views
+        # Content area - create all views
         self.history_view = HistoryView(self.data_store)
         self.settings_view = SettingsView(self.settings_manager)
+        self.dictionary_view = PlaceholderView("Dictionary")
+        self.instructions_view = PlaceholderView("Instructions")
 
         # Add settings view by default
         self.current_content_widget = self.settings_view
@@ -307,9 +348,12 @@ class MainWindow(QMainWindow):
             self.history_view.refresh_transcripts()
         elif item_name == "Settings":
             self.current_content_widget = self.settings_view
+        elif item_name == "Dictionary":
+            self.current_content_widget = self.dictionary_view
+        elif item_name == "Instructions":
+            self.current_content_widget = self.instructions_view
         else:
-            # For other views, show placeholder (keep current view for now)
-            print(f"Clicked on {item_name} - not implemented yet")
+            print(f"Unknown menu item: {item_name}")
             return
 
         # Add the new content widget
@@ -473,6 +517,29 @@ class MainWindow(QMainWindow):
         
         #apiKeyInput::placeholder {
             color: #999;
+        }
+        
+        /* Placeholder View Styles */
+        #placeholderView {
+            background-color: #f5f5f5 !important;
+            border: none;
+        }
+        
+        #placeholderContent {
+            background-color: #f5f5f5 !important;
+        }
+        
+        #placeholderTitle {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            background-color: transparent;
+        }
+        
+        #placeholderDesc {
+            font-size: 16px;
+            color: #666;
+            background-color: transparent;
         }
         """
 
