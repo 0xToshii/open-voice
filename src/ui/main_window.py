@@ -173,6 +173,7 @@ class HistoryView(QScrollArea):
 
         # Content widget
         self.content_widget = QWidget()
+        self.content_widget.setObjectName("historyContent")
         self.content_layout = QVBoxLayout()
         self.content_layout.setSpacing(15)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
@@ -377,7 +378,7 @@ class MainWindow(QMainWindow):
             border: none;
         }
         
-        #historyView QWidget {
+        #historyContent {
             background-color: #f5f5f5 !important;
         }
         
