@@ -1,19 +1,19 @@
 from src.interfaces.text_processing import ITextProcessor
-from src.llm.interfaces.llm_client import ILLMClient
+from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.interfaces.prompt_provider import IPromptProvider
 from src.interfaces.settings import ISettingsManager
 
 
 class LLMTextProcessor(ITextProcessor):
-    """LLM-powered text processor that applies a pipeline of prompts"""
+    """LLM-powered text processor with dynamic LLM routing"""
 
     def __init__(
         self,
-        llm_client: ILLMClient,
+        llm_router: ILLMRouter,
         prompt_provider: IPromptProvider,
         settings_manager: ISettingsManager,
     ):
-        self.llm_client = llm_client
+        self.llm_router = llm_router
         self.prompt_provider = prompt_provider
         self.settings_manager = settings_manager
 
@@ -28,9 +28,9 @@ class LLMTextProcessor(ITextProcessor):
         print(f"🔄 LLM Single-Call: Starting text processing")
         print(f"   Input: '{original_text}'")
 
-        # Check if LLM is available
-        if not self.llm_client.is_available():
-            print("⚠️ LLM client not available, returning original text")
+        # Check if LLM router is available
+        if not self.llm_router.is_available():
+            print("⚠️ LLM router not available, returning original text")
             return original_text
 
         try:
@@ -57,25 +57,32 @@ class LLMTextProcessor(ITextProcessor):
                 final_prompt = base_prompt
                 print("ℹ️ No custom instructions provided")
 
-            print("🧠 Making single LLM call...")
+            print("🧠 Making LLM router call...")
 
-            # Single LLM call
-            try:
-                processed_text = self.llm_client.generate(final_prompt, original_text)
+            # Single LLM call through router (with automatic fallback)
+            processed_text = self.llm_router.process_with_best_llm(
+                final_prompt, original_text
+            )
 
-                if processed_text and processed_text.strip():
-                    result = processed_text.strip()
-                    print(
-                        f"✅ LLM processing complete: '{result[:50]}{'...' if len(result) > 50 else ''}'"
-                    )
-                    return result
-                else:
-                    print("⚠️ Empty response from LLM, returning original text")
-                    return original_text
+            # Log which LLM was actually used
+            llm_info = self.llm_router.get_last_used_llm_info()
+            if llm_info["success"]:
+                print(f"🎯 Used LLM: {llm_info['provider']} ({llm_info['model']})")
+            else:
+                print(f"⚠️ LLM failed: {llm_info.get('error', 'Unknown error')}")
 
-            except Exception as e:
-                print(f"❌ LLM call failed: {e}")
-                print(f"🚨 Returning original text due to LLM failure")
+            if (
+                processed_text
+                and processed_text.strip()
+                and processed_text != original_text
+            ):
+                result = processed_text.strip()
+                print(
+                    f"✅ LLM processing complete: '{result[:50]}{'...' if len(result) > 50 else ''}'"
+                )
+                return result
+            else:
+                print("⚠️ LLM returned original text, no processing applied")
                 return original_text
 
         except Exception as e:
@@ -91,20 +98,28 @@ class LLMTextProcessor(ITextProcessor):
                 custom_instructions and custom_instructions.strip()
             )
 
+            # Get router info
+            available_llms = self.llm_router.get_available_llms()
+            last_used_llm = self.llm_router.get_last_used_llm_info()
+
             return {
-                "llm_client": self.llm_client.get_model_info(),
+                "llm_router": {
+                    "available_llms": available_llms,
+                    "last_used_llm": last_used_llm,
+                    "router_available": self.llm_router.is_available(),
+                },
                 "base_prompt": "TextRewriter",
                 "has_custom_instructions": has_custom_instructions,
                 "custom_instructions_preview": (
                     custom_instructions[:100] if has_custom_instructions else None
                 ),
-                "processing_type": "single_call",
+                "processing_type": "single_call_with_router",
             }
         except Exception as e:
             return {
                 "error": str(e),
-                "llm_client": "unknown",
-                "processing_type": "single_call",
+                "llm_router": "unknown",
+                "processing_type": "single_call_with_router",
                 "has_custom_instructions": False,
             }
 

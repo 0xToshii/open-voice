@@ -22,8 +22,10 @@ from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
 # LLM Pipeline imports
 from src.llm.interfaces.llm_client import ILLMClient
 from src.llm.interfaces.prompt_provider import IPromptProvider
+from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.clients.cerebras_client import CerebrasLLMClient, MockLLMClient
 from src.llm.services.prompt_manager import FilePromptProvider, MockPromptProvider
+from src.llm.services.llm_router import LLMRouter, MockLLMRouter
 from src.llm.services.llm_text_processor import (
     LLMTextProcessor,
     PassthroughTextProcessor,
@@ -49,6 +51,7 @@ class DIContainer:
         # LLM Pipeline singletons
         self._llm_client: Optional[ILLMClient] = None
         self._prompt_provider: Optional[IPromptProvider] = None
+        self._llm_router: Optional[ILLMRouter] = None
 
         # Speech Router singleton
         self._speech_router: Optional[ISpeechEngineRouter] = None
@@ -116,26 +119,43 @@ class DIContainer:
                     self._prompt_provider = MockPromptProvider()
         return self._prompt_provider
 
+    def get_llm_router(self) -> ILLMRouter:
+        """Get LLM router with dynamic client selection"""
+        if self._llm_router is None:
+            try:
+                settings_manager = self.get_settings_manager()
+
+                self._llm_router = LLMRouter(settings_manager=settings_manager)
+                print("✅ Using real LLM router")
+
+            except Exception as e:
+                print(f"⚠️ Falling back to mock LLM router: {e}")
+                self._llm_router = MockLLMRouter()
+
+        return self._llm_router
+
     def get_text_processor(self) -> ITextProcessor:
-        """Get text processor with LLM pipeline"""
+        """Get text processor with LLM router pipeline"""
         if self._text_processor is None:
             try:
-                llm_client = self.get_llm_client()
+                llm_router = self.get_llm_router()
                 prompt_provider = self.get_prompt_provider()
                 settings = self.get_settings_manager()
 
-                # Try to create LLM text processor
-                if llm_client.is_available():
+                # Try to create LLM text processor with router
+                if llm_router.is_available():
                     self._text_processor = LLMTextProcessor(
-                        llm_client=llm_client,
+                        llm_router=llm_router,
                         prompt_provider=prompt_provider,
                         settings_manager=settings,
                     )
-                    print("✅ Using LLM text processor pipeline")
+                    print("✅ Using LLM text processor with router")
                 else:
                     # Fallback to passthrough
                     self._text_processor = PassthroughTextProcessor()
-                    print("⚠️ LLM not available, using passthrough text processor")
+                    print(
+                        "⚠️ LLM router not available, using passthrough text processor"
+                    )
 
             except Exception as e:
                 print(f"⚠️ Failed to create LLM text processor: {e}")
@@ -255,5 +275,6 @@ class DIContainer:
         self._hotkey_handler = None
         self._llm_client = None
         self._prompt_provider = None
+        self._llm_router = None
         self._speech_router = None
         print("🔄 DI Container reset")
