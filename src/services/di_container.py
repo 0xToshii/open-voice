@@ -17,7 +17,7 @@ from src.services.settings_manager import SettingsManager
 from src.data.mock_data_store import MockDataStore
 from src.services.text_processor import TextProcessor
 from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
-from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
+from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
 
 # LLM Pipeline imports
 from src.llm.interfaces.llm_client import ILLMClient
@@ -212,8 +212,8 @@ class DIContainer:
                 self._hotkey_handler = MockHotkeyHandler()
             else:
                 try:
-                    self._hotkey_handler = FnKeyHandler()
-                    print("✅ Using real hotkey handler")
+                    self._hotkey_handler = CmdOptionHandler()
+                    print("✅ Using Cmd+Option hotkey handler")
                 except Exception as e:
                     print(f"⚠️ Falling back to mock hotkey handler: {e}")
                     self._hotkey_handler = MockHotkeyHandler()

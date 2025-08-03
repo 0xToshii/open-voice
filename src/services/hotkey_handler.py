@@ -6,8 +6,8 @@ import subprocess
 import platform
 
 
-class FnKeyHandler(IHotkeyHandler):
-    """Handles Cmd+Shift+Space key detection for recording activation"""
+class CmdOptionHandler(IHotkeyHandler):
+    """Handles Cmd+Option key detection for recording activation"""
 
     def __init__(self):
         self.on_press_callback: Optional[Callable] = None
@@ -16,17 +16,16 @@ class FnKeyHandler(IHotkeyHandler):
         self.is_listening = False
         self.hotkey_pressed = False
         self.cmd_pressed = False
-        self.shift_pressed = False
-        self.space_pressed = False
+        self.option_pressed = False
         self.captured_app = None  # Store captured app for callback
 
     def register_hotkey(self, on_press: Callable, on_release: Callable) -> None:
-        """Register callbacks for Fn key press and release"""
+        """Register callbacks for Cmd+Option press and release"""
         self.on_press_callback = on_press
         self.on_release_callback = on_release
 
     def start_listening(self) -> None:
-        """Start listening for Fn key events"""
+        """Start listening for Cmd+Option events"""
         if self.is_listening:
             return
 
@@ -37,7 +36,7 @@ class FnKeyHandler(IHotkeyHandler):
         self.listener.start()
 
     def stop_listening(self) -> None:
-        """Stop listening for Fn key events"""
+        """Stop listening for Cmd+Option events"""
         if not self.is_listening:
             return
 
@@ -47,21 +46,19 @@ class FnKeyHandler(IHotkeyHandler):
             self.listener = None
 
     def _on_key_press(self, key):
-        """Handle key press events for Cmd+Shift+Space combination"""
+        """Handle key press events for Cmd+Option combination"""
         try:
             # Track individual key states
             if key == keyboard.Key.cmd:
                 self.cmd_pressed = True
-            elif key == keyboard.Key.shift:
-                self.shift_pressed = True
-            elif key == keyboard.Key.space:
-                self.space_pressed = True
+            elif key == keyboard.Key.alt:  # Alt key is Option on Mac
+                self.option_pressed = True
 
-            # Check if all three keys are pressed (Cmd+Shift+Space)
-            if self.cmd_pressed and self.shift_pressed and self.space_pressed:
+            # Check if both keys are pressed (Cmd+Option)
+            if self.cmd_pressed and self.option_pressed:
                 if not self.hotkey_pressed:
                     self.hotkey_pressed = True
-                    print("🔴 Hotkey combination detected: Cmd+Shift+Space")
+                    print("🔴 Hotkey combination detected: Cmd+Option")
                     if self.on_press_callback:
                         self.on_press_callback()
 
@@ -70,20 +67,16 @@ class FnKeyHandler(IHotkeyHandler):
             pass
 
     def _on_key_release(self, key):
-        """Handle key release events for Cmd+Shift+Space combination"""
+        """Handle key release events for Cmd+Option combination"""
         try:
             # Track individual key release states
             if key == keyboard.Key.cmd:
                 self.cmd_pressed = False
-            elif key == keyboard.Key.shift:
-                self.shift_pressed = False
-            elif key == keyboard.Key.space:
-                self.space_pressed = False
+            elif key == keyboard.Key.alt:  # Alt key is Option on Mac
+                self.option_pressed = False
 
             # If hotkey was active and any key is released, trigger release callback
-            if self.hotkey_pressed and not (
-                self.cmd_pressed and self.shift_pressed and self.space_pressed
-            ):
+            if self.hotkey_pressed and not (self.cmd_pressed and self.option_pressed):
                 self.hotkey_pressed = False
                 print("⚫ Hotkey combination released")
                 if self.on_release_callback:
