@@ -128,8 +128,9 @@ class TranscriptBubble(QWidget):
 
         layout.addLayout(header_layout)
 
-        # Transcript text bubble
-        text_bubble = QLabel(self.entry.original_text)
+        # Transcript text bubble - show processed text (what was actually inserted)
+        display_text = self.entry.processed_text or self.entry.original_text
+        text_bubble = QLabel(display_text)
         text_bubble.setObjectName("transcriptBubble")
         text_bubble.setWordWrap(True)
         text_bubble.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
