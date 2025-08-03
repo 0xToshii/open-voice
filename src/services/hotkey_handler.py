@@ -62,14 +62,6 @@ class FnKeyHandler(IHotkeyHandler):
                     if self.on_press_callback:
                         self.on_press_callback()
 
-            # Fallback: F13 key for testing (easier to detect)
-            elif key == keyboard.Key.f13:
-                if not self.hotkey_pressed:
-                    self.hotkey_pressed = True
-                    print("🔴 F13 key detected")
-                    if self.on_press_callback:
-                        self.on_press_callback()
-
         except AttributeError:
             # Key doesn't have the expected attributes
             pass
@@ -93,14 +85,6 @@ class FnKeyHandler(IHotkeyHandler):
                 print("⚫ Hotkey combination released")
                 if self.on_release_callback:
                     self.on_release_callback()
-
-            # Fallback: F13 key release
-            elif key == keyboard.Key.f13:
-                if self.hotkey_pressed:
-                    self.hotkey_pressed = False
-                    print("⚫ F13 key released")
-                    if self.on_release_callback:
-                        self.on_release_callback()
 
         except AttributeError:
             # Key doesn't have the expected attributes
