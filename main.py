@@ -14,6 +14,7 @@ from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
 from src.services.hotkey_handler import FnKeyHandler, MockHotkeyHandler
 from src.services.text_processor import TextProcessor
 from src.services.recording_service import VoiceRecordingService
+from src.services.settings_manager import SettingsManager
 
 
 def main():
@@ -54,6 +55,9 @@ def main():
         print(f"⚠️ Falling back to mock hotkey handler: {e}")
         hotkey_handler = MockHotkeyHandler()
 
+    # Create settings manager
+    settings_manager = SettingsManager()
+
     # Create recording service with all dependencies
     recording_service = VoiceRecordingService(
         speech_engine=speech_engine,
@@ -63,8 +67,8 @@ def main():
         audio_recorder=audio_recorder,
     )
 
-    # Create and show main window
-    window = MainWindow(data_store, recording_service)
+    # Create and show main window with dependency injection
+    window = MainWindow(data_store, settings_manager, recording_service)
     window.show()
 
     # Start the recording service

@@ -8,13 +8,13 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 from PySide6.QtCore import Qt
-from src.services.settings_manager import SettingsManager
+from src.interfaces.settings import ISettingsManager
 
 
 class SettingsView(QScrollArea):
     """Settings view with API key configuration"""
 
-    def __init__(self, settings_manager: SettingsManager):
+    def __init__(self, settings_manager: ISettingsManager):
         super().__init__()
         self.settings_manager = settings_manager
         self.setup_ui()

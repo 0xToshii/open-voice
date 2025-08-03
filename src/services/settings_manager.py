@@ -1,8 +1,9 @@
 from PySide6.QtCore import QObject, Signal
+from src.interfaces.settings import ISettingsManager
 
 
 class SettingsManager(QObject):
-    """Simple in-memory settings manager for API keys"""
+    """Simple in-memory settings manager for API keys implementing ISettingsManager"""
 
     # Signal emitted when settings change
     setting_changed = Signal(str, str)  # (setting_name, new_value)

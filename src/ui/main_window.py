@@ -15,7 +15,7 @@ from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
 from src.ui.settings_view import SettingsView
-from src.services.settings_manager import SettingsManager
+from src.interfaces.settings import ISettingsManager
 from typing import List
 from datetime import datetime
 
@@ -213,15 +213,16 @@ class MainWindow(QMainWindow):
     """Main application window"""
 
     def __init__(
-        self, data_store: IDataStore, recording_service: VoiceRecordingService = None
+        self,
+        data_store: IDataStore,
+        settings_manager: ISettingsManager,
+        recording_service: VoiceRecordingService = None,
     ):
         super().__init__()
         self.data_store = data_store
+        self.settings_manager = settings_manager
         self.recording_service = recording_service
         self.current_view = "History"
-
-        # Create settings manager
-        self.settings_manager = SettingsManager()
 
         # Create recording overlay on main thread
         self.recording_overlay = RecordingOverlay()
