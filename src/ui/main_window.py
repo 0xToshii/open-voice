@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QSizePolicy,
+    QStackedWidget,
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QPalette
@@ -333,44 +334,46 @@ class MainWindow(QMainWindow):
         self.sidebar.menu_item_clicked.connect(self.on_menu_item_clicked)
         main_layout.addWidget(self.sidebar)
 
-        # Content area - create all views
+        # Content area - create QStackedWidget for view switching
+        self.content_stack = QStackedWidget()
+
+        # Create all views and add them to the stack
         self.history_view = HistoryView(self.data_store)
         self.settings_view = SettingsView(self.settings_manager)
         self.dictionary_view = PlaceholderView("Dictionary")
         self.instructions_view = PlaceholderView("Instructions")
 
-        # Add settings view by default
-        self.current_content_widget = self.settings_view
-        main_layout.addWidget(self.current_content_widget, 1)
+        # Add views to stack
+        self.content_stack.addWidget(self.history_view)
+        self.content_stack.addWidget(self.settings_view)
+        self.content_stack.addWidget(self.dictionary_view)
+        self.content_stack.addWidget(self.instructions_view)
+
+        # Show settings view by default
+        self.content_stack.setCurrentWidget(self.settings_view)
+        main_layout.addWidget(self.content_stack, 1)
 
         central_widget.setLayout(main_layout)
 
     def on_menu_item_clicked(self, item_name: str):
-        """Handle sidebar menu item clicks"""
+        """Handle sidebar menu item clicks using QStackedWidget"""
         self.current_view = item_name
 
-        # Get the main layout
-        main_layout = self.centralWidget().layout()
-
-        # Remove current content widget
-        main_layout.removeWidget(self.current_content_widget)
-
-        # Add the appropriate view
+        # Switch to the appropriate view using QStackedWidget
         if item_name == "History":
-            self.current_content_widget = self.history_view
+            self.content_stack.setCurrentWidget(self.history_view)
             self.history_view.refresh_transcripts()
         elif item_name == "Settings":
-            self.current_content_widget = self.settings_view
+            self.content_stack.setCurrentWidget(self.settings_view)
         elif item_name == "Dictionary":
-            self.current_content_widget = self.dictionary_view
+            self.content_stack.setCurrentWidget(self.dictionary_view)
         elif item_name == "Instructions":
-            self.current_content_widget = self.instructions_view
+            self.content_stack.setCurrentWidget(self.instructions_view)
         else:
             print(f"Unknown menu item: {item_name}")
             return
 
-        # Add the new content widget
-        main_layout.addWidget(self.current_content_widget, 1)
+        print(f"📋 Switched to {item_name} view")
 
     def add_transcript_entry(self, entry: TranscriptEntry):
         """Add a new transcript entry to the history"""

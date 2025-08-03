@@ -119,7 +119,7 @@ class RecordingOverlay(QWidget):
         style = """
         QWidget {
             background-color: rgb(10, 10, 10);
-            border-radius: 50px;
+            border-radius: 25px;
             border: none;
         }
         """
