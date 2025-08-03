@@ -10,7 +10,6 @@ class MockDataStore(IDataStore):
     def __init__(self):
         self.transcripts = []
         self.next_id = 1
-        self._populate_sample_data()
 
     def _populate_sample_data(self):
         """Create some sample transcript entries"""
