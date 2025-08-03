@@ -3,9 +3,13 @@ from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.interfaces.hotkey import IHotkeyHandler
 from src.interfaces.text_processing import ITextProcessor
 from src.interfaces.audio_recorder import IAudioRecorder
+from src.interfaces.text_insertion import ITextInserter
+from src.services.text_inserter_factory import TextInserterFactory
 from PySide6.QtCore import QObject, Signal
 from datetime import datetime
 import time
+import subprocess
+import platform
 from typing import Optional
 
 
@@ -24,6 +28,7 @@ class VoiceRecordingService(QObject):
         hotkey_handler: IHotkeyHandler,
         text_processor: ITextProcessor,
         audio_recorder: IAudioRecorder,
+        text_inserter: Optional[ITextInserter] = None,
     ):
         super().__init__()
 
@@ -34,9 +39,13 @@ class VoiceRecordingService(QObject):
         self.text_processor = text_processor
         self.audio_recorder = audio_recorder
 
+        # Text insertion - use provided inserter or create best available
+        self.text_inserter = text_inserter or TextInserterFactory.create_best_inserter()
+
         # Recording state
         self.is_recording = False
         self.recording_start_time: Optional[float] = None
+        self.target_app_for_insertion: Optional[str] = None
 
         # Setup hotkey callbacks
         self.hotkey_handler.register_hotkey(
@@ -65,6 +74,10 @@ class VoiceRecordingService(QObject):
         if self.is_recording:
             return
 
+        # CRITICAL: Capture focused app IMMEDIATELY before we do anything else
+        self.target_app_for_insertion = self._get_focused_app()
+        print(f"🎯 Captured target app for insertion: {self.target_app_for_insertion}")
+
         print("🔴 Recording started")
         self.is_recording = True
         self.recording_start_time = time.time()
@@ -74,6 +87,36 @@ class VoiceRecordingService(QObject):
 
         # Emit signal to show recording overlay (thread-safe)
         self.recording_started.emit()
+
+    def _get_focused_app(self) -> Optional[str]:
+        """Get the name of the currently focused application"""
+        try:
+            if platform.system() == "Darwin":  # macOS
+                result = subprocess.run(
+                    [
+                        "osascript",
+                        "-e",
+                        'tell application "System Events" to get name of first application process whose frontmost is true',
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+
+                if result.returncode == 0:
+                    app_name = result.stdout.strip()
+                    return app_name if app_name else None
+                else:
+                    print(f"⚠️ Failed to get focused app: {result.stderr}")
+                    return None
+            else:
+                # For non-Mac systems, we can't easily detect focus
+                print("⚠️ Focus detection not supported on this platform")
+                return None
+
+        except Exception as e:
+            print(f"⚠️ Error getting focused app: {e}")
+            return None
 
     def stop_recording(self):
         """Stop recording when hotkey is released"""
@@ -143,17 +186,91 @@ class VoiceRecordingService(QObject):
             print(f"❌ Error processing recording: {e}")
 
     def insert_text(self, text: str, transcript_id: int):
-        """Insert text into the active application (mock for now)"""
+        """Insert text into the active application using real text insertion"""
         try:
-            # TODO: Implement real text insertion using pyautogui/pyperclip
-            print(f"📝 Text insertion (mock): '{text}'")
+            if not text.strip():
+                print("⚠️ Empty text, skipping insertion")
+                self.data_store.mark_insertion_status(transcript_id, True)
+                return
 
-            # Mark insertion as successful
-            self.data_store.mark_insertion_status(transcript_id, True)
+            print(f"📝 Inserting text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
+            print(f"🎯 Target app for insertion: {self.target_app_for_insertion}")
+
+            # Use the text inserter with the captured target app
+            success = self._insert_text_to_target(text, self.target_app_for_insertion)
+
+            if success:
+                print(f"✅ Text insertion successful")
+            else:
+                print(f"❌ Text insertion failed")
+
+            # Mark insertion status in database
+            self.data_store.mark_insertion_status(transcript_id, success)
 
         except Exception as e:
-            print(f"❌ Text insertion failed: {e}")
+            print(f"❌ Text insertion error: {e}")
             self.data_store.mark_insertion_status(transcript_id, False)
+
+    def _insert_text_to_target(self, text: str, target_app: Optional[str]) -> bool:
+        """Insert text to the specified target app"""
+        try:
+            if not target_app:
+                print("⚠️ No target app captured, using default insertion")
+                return self.text_inserter.insert_text(text)
+
+            # Restore focus to target app first
+            if self._restore_focus_to_app(target_app):
+                # Small delay to ensure focus change takes effect
+                time.sleep(0.1)
+
+                # Now insert the text
+                return self.text_inserter.insert_text(text)
+            else:
+                print("⚠️ Failed to restore focus, using fallback insertion")
+                return self.text_inserter.insert_text(text)
+
+        except Exception as e:
+            print(f"❌ Error in targeted text insertion: {e}")
+            return False
+
+    def _restore_focus_to_app(self, app_name: str) -> bool:
+        """Restore focus to the specified application"""
+        try:
+            if not app_name or platform.system() != "Darwin":
+                return False
+
+            print(f"🔄 Restoring focus to target app: {app_name}")
+
+            result = subprocess.run(
+                ["osascript", "-e", f'tell application "{app_name}" to activate'],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+
+            if result.returncode == 0:
+                print(f"✅ Focus restored to {app_name}")
+                return True
+            else:
+                print(f"⚠️ Failed to restore focus to {app_name}: {result.stderr}")
+                return False
+
+        except Exception as e:
+            print(f"⚠️ Error restoring focus to {app_name}: {e}")
+            return False
+
+    def get_text_inserter_info(self) -> dict:
+        """Get information about the current text inserter"""
+        return self.text_inserter.get_capabilities()
+
+    def set_text_inserter(self, inserter: ITextInserter):
+        """Change the text inserter implementation"""
+        if inserter and inserter.is_available():
+            self.text_inserter = inserter
+            capabilities = inserter.get_capabilities()
+            print(f"🔧 Text inserter changed to: {capabilities['name']}")
+        else:
+            print("❌ Cannot set text inserter: not available or invalid")
 
 
 class MockVoiceRecordingService(QObject):
