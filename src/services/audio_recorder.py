@@ -130,8 +130,15 @@ class PyAudioRecorder(IAudioRecorder):
             # Convert audio buffer to numpy array
             audio_data = np.concatenate(self._audio_buffer, axis=0)
 
-            # Debug: Analyze raw audio data
-            self._analyze_audio_data(audio_data)
+            # Debug: Analyze raw audio data and store RMS for silence detection
+            raw_rms = self._analyze_audio_data(audio_data)
+
+            # Check for silence BEFORE normalization using raw RMS
+            if raw_rms < 0.002:  # Very low threshold for raw audio
+                print(
+                    f"🔇 Raw audio too quiet (RMS: {raw_rms:.6f}) - detected as silence"
+                )
+                return b""  # Return empty bytes to signal silence
 
             # Normalize and convert to 16-bit PCM
             audio_normalized = self._normalize_audio(audio_data)
@@ -152,8 +159,8 @@ class PyAudioRecorder(IAudioRecorder):
             print(f"❌ Error stopping audio recording: {e}")
             return None
 
-    def _analyze_audio_data(self, audio_data: np.ndarray) -> None:
-        """Debug: Analyze captured audio data"""
+    def _analyze_audio_data(self, audio_data: np.ndarray) -> float:
+        """Debug: Analyze captured audio data and return RMS value"""
         try:
             # Flatten to 1D if needed
             if audio_data.ndim > 1:
@@ -180,8 +187,11 @@ class PyAudioRecorder(IAudioRecorder):
             else:
                 print("⚠️ Audio levels seem low but present")
 
+            return rms
+
         except Exception as e:
             print(f"❌ Error analyzing audio: {e}")
+            return 0.0
 
     def _normalize_audio(self, audio_data: np.ndarray) -> np.ndarray:
         """Normalize audio data to prevent clipping and improve recognition"""

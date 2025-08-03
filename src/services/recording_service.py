@@ -110,25 +110,36 @@ class VoiceRecordingService(QObject):
     def process_recording(self, duration: float, audio_data: Optional[bytes] = None):
         """Process the completed recording"""
         try:
-            # Get transcription using clean speech router (with automatic fallback)
-            if audio_data:
-                print(f"🔄 Processing real audio data ({len(audio_data)} bytes)")
-                original_text = self.speech_router.transcribe_with_fallback(audio_data)
+            # Check if we have audio data
+            if not audio_data:
+                print("⚠️ No audio data available - aborting processing")
+                return
 
-                # Log which engine was actually used
-                engine_info = self.speech_router.get_last_used_engine_info()
-                if engine_info["success"]:
-                    print(
-                        f"🎯 Used engine: {engine_info['name']} ({engine_info['provider']})"
-                    )
-                else:
-                    print(
-                        f"⚠️ Engine failed: {engine_info.get('error', 'Unknown error')}"
-                    )
+            # Check if audio recorder detected silence (returns empty bytes)
+            if len(audio_data) == 0:
+                print("🔇 Silence detected by audio recorder - aborting processing")
+                return  # Early exit - no transcription, no text insertion
 
+            print(f"🔄 Processing real audio data ({len(audio_data)} bytes)")
+
+            # Additional silence check using our own analysis (backup)
+            if self._is_silent_audio(audio_data):
+                print(
+                    "🔇 No speech detected by secondary analysis - aborting processing"
+                )
+                return  # Early exit - no transcription, no text insertion
+
+            # Only proceed if we detected actual speech
+            original_text = self.speech_router.transcribe_with_fallback(audio_data)
+
+            # Log which engine was actually used
+            engine_info = self.speech_router.get_last_used_engine_info()
+            if engine_info["success"]:
+                print(
+                    f"🎯 Used engine: {engine_info['name']} ({engine_info['provider']})"
+                )
             else:
-                print("⚠️ No audio data available, using fallback")
-                original_text = "No audio recorded"
+                print(f"⚠️ Engine failed: {engine_info.get('error', 'Unknown error')}")
 
             # Process text through LLM pipeline
             processed_text = self.text_processor.process_text(original_text)
@@ -242,6 +253,52 @@ class VoiceRecordingService(QObject):
                 "last_used_engine": None,
                 "router_available": False,
             }
+
+    def _is_silent_audio(self, audio_data: bytes) -> bool:
+        """Check if audio data contains meaningful speech content"""
+        try:
+            import struct
+
+            # Convert bytes to 16-bit samples (our audio format: 16kHz, 16-bit, mono)
+            if len(audio_data) < 2:
+                return True  # Too little data
+
+            samples = struct.unpack(f"<{len(audio_data)//2}h", audio_data)
+
+            if len(samples) == 0:
+                return True
+
+            # Calculate RMS (Root Mean Square) amplitude
+            rms = (sum(sample**2 for sample in samples) / len(samples)) ** 0.5
+
+            # Thresholds for silence detection
+            SILENCE_THRESHOLD = 500  # Below this = silence
+            MIN_DYNAMIC_RANGE = 100  # Variation needed for speech
+
+            print(f"🔊 Audio analysis: RMS={rms:.1f}, samples={len(samples)}")
+
+            # Check 1: Overall amplitude
+            if rms < SILENCE_THRESHOLD:
+                print(f"   Too quiet (RMS {rms:.1f} < {SILENCE_THRESHOLD})")
+                return True
+
+            # Check 2: Dynamic range (speech has variation)
+            max_sample = max(abs(s) for s in samples)
+            min_sample = min(abs(s) for s in samples)
+            dynamic_range = max_sample - min_sample
+
+            print(f"   Dynamic range: {dynamic_range} (min: {MIN_DYNAMIC_RANGE})")
+
+            if dynamic_range < MIN_DYNAMIC_RANGE:
+                print(f"   Too static (range {dynamic_range} < {MIN_DYNAMIC_RANGE})")
+                return True  # Likely just consistent background noise
+
+            print("   ✅ Speech detected - proceeding with transcription")
+            return False  # Probably contains speech
+
+        except Exception as e:
+            print(f"⚠️ Audio analysis failed: {e}")
+            return False  # When in doubt, process it
 
     def get_audio_recorder(self) -> IAudioRecorder:
         """Get the audio recorder instance for real-time level monitoring"""
