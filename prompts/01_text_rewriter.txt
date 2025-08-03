@@ -55,3 +55,6 @@ Output: "In a list format, write for me these three items:
 • Apples
 • Pears
 • Bananas"
+
+Input: "generate me a story about a dog and a cat"
+Output: "Generate me a story about a dog and a cat."
