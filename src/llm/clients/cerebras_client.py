@@ -26,11 +26,13 @@ class CerebrasLLMClient(ILLMClient):
             "Content-Type": "application/json",
         }
 
+        user_input_prompt = "Transcription input: " + user_input
+
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input},
+                {"role": "user", "content": user_input_prompt},
             ],
             "max_tokens": 2048,
             "temperature": 0.1,  # Low temperature for consistent text processing
@@ -42,7 +44,7 @@ class CerebrasLLMClient(ILLMClient):
             print(
                 f" - System prompt: {system_prompt[:100]}{'...' if len(system_prompt) > 100 else ''}"
             )
-            print(print(f" - Input: {user_input}"))
+            print(print(f" - Input: {user_input_prompt}"))
 
             response = requests.post(
                 f"{self.api_base_url}/chat/completions",
