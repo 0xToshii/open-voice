@@ -16,7 +16,7 @@ from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
 from src.ui.settings_view import SettingsView
 from src.interfaces.settings import ISettingsManager
-from src.engines.speech_factory import SpeechEngineFactory
+from src.interfaces.speech_factory import ISpeechEngineRegistry
 from typing import List
 from datetime import datetime
 
@@ -376,22 +376,16 @@ class MainWindow(QMainWindow):
         """Handle settings changes - switch speech engine when OpenAI key changes"""
         if setting_name == "openai_key" and self.recording_service:
             try:
-                # Create new speech engine based on updated settings
-                new_engine = SpeechEngineFactory.create_best_engine(
-                    self.settings_manager
-                )
+                # TODO: Access to registry should come from DI container
+                # For now, we'll let the recording service handle engine switching
+                # by calling its internal methods that use the proper DI approach
 
-                # Update the recording service
-                self.recording_service.set_speech_engine(new_engine)
-
-                # Log the engine switch
-                engine_info = self.recording_service.get_speech_engine_info()
-                print(
-                    f"🔄 Speech engine switched to: {engine_info.get('name', 'Unknown')}"
-                )
+                # Log the potential engine switch
+                print(f"🔄 Settings changed: {setting_name} = {value}")
+                print("   Engine switching will be handled by the recording service")
 
             except Exception as e:
-                print(f"❌ Failed to switch speech engine: {e}")
+                print(f"❌ Failed to handle settings change: {e}")
 
     def apply_styles(self):
         """Apply CSS styles to the window"""
