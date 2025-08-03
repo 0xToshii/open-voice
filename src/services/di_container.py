@@ -29,6 +29,10 @@ from src.llm.services.llm_text_processor import (
     PassthroughTextProcessor,
 )
 
+# Speech Router imports
+from src.interfaces.speech_router import ISpeechEngineRouter
+from src.services.speech_engine_router import SpeechEngineRouter, MockSpeechEngineRouter
+
 
 class DIContainer:
     """Dependency Injection Container for managing application dependencies"""
@@ -45,6 +49,9 @@ class DIContainer:
         # LLM Pipeline singletons
         self._llm_client: Optional[ILLMClient] = None
         self._prompt_provider: Optional[IPromptProvider] = None
+
+        # Speech Router singleton
+        self._speech_router: Optional[ISpeechEngineRouter] = None
 
         # Configuration flags
         self._use_mock_audio = False
@@ -137,6 +144,24 @@ class DIContainer:
 
         return self._text_processor
 
+    def get_speech_router(self) -> ISpeechEngineRouter:
+        """Get speech engine router with dynamic engine selection"""
+        if self._speech_router is None:
+            try:
+                speech_registry = self.get_speech_registry()
+                settings_manager = self.get_settings_manager()
+
+                self._speech_router = SpeechEngineRouter(
+                    speech_registry=speech_registry, settings_manager=settings_manager
+                )
+                print("✅ Using real speech engine router")
+
+            except Exception as e:
+                print(f"⚠️ Falling back to mock speech router: {e}")
+                self._speech_router = MockSpeechEngineRouter()
+
+        return self._speech_router
+
     def get_speech_registry(self) -> ISpeechEngineRegistry:
         """Get speech engine registry singleton with registered engines"""
         if self._speech_registry is None:
@@ -182,16 +207,13 @@ class DIContainer:
 
     def get_recording_service(self) -> VoiceRecordingService:
         """Get recording service with all dependencies injected"""
-        recording_service = VoiceRecordingService(
-            speech_engine=self.get_speech_engine(),
+        return VoiceRecordingService(
+            speech_router=self.get_speech_router(),
             data_store=self.get_data_store(),
             hotkey_handler=self.get_hotkey_handler(),
             text_processor=self.get_text_processor(),
             audio_recorder=self.get_audio_recorder(),
         )
-        # Inject DI container for dynamic engine selection
-        recording_service.set_di_container(self)
-        return recording_service
 
     def _register_speech_engines(self):
         """Register all available speech engines with priorities"""
@@ -233,4 +255,5 @@ class DIContainer:
         self._hotkey_handler = None
         self._llm_client = None
         self._prompt_provider = None
+        self._speech_router = None
         print("🔄 DI Container reset")
