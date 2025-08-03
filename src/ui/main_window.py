@@ -14,6 +14,8 @@ from PySide6.QtGui import QFont, QPalette
 from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
+from src.ui.settings_view import SettingsView
+from src.services.settings_manager import SettingsManager
 from typing import List
 from datetime import datetime
 
@@ -218,6 +220,9 @@ class MainWindow(QMainWindow):
         self.recording_service = recording_service
         self.current_view = "History"
 
+        # Create settings manager
+        self.settings_manager = SettingsManager()
+
         # Create recording overlay on main thread
         self.recording_overlay = RecordingOverlay()
 
@@ -277,9 +282,13 @@ class MainWindow(QMainWindow):
         self.sidebar.menu_item_clicked.connect(self.on_menu_item_clicked)
         main_layout.addWidget(self.sidebar)
 
-        # Content area
+        # Content area - create both views
         self.history_view = HistoryView(self.data_store)
-        main_layout.addWidget(self.history_view, 1)
+        self.settings_view = SettingsView(self.settings_manager)
+
+        # Add history view by default
+        self.current_content_widget = self.history_view
+        main_layout.addWidget(self.current_content_widget, 1)
 
         central_widget.setLayout(main_layout)
 
@@ -287,12 +296,25 @@ class MainWindow(QMainWindow):
         """Handle sidebar menu item clicks"""
         self.current_view = item_name
 
+        # Get the main layout
+        main_layout = self.centralWidget().layout()
+
+        # Remove current content widget
+        main_layout.removeWidget(self.current_content_widget)
+
+        # Add the appropriate view
         if item_name == "History":
-            # Already showing history view
+            self.current_content_widget = self.history_view
             self.history_view.refresh_transcripts()
+        elif item_name == "Settings":
+            self.current_content_widget = self.settings_view
         else:
-            # Placeholder for other views
+            # For other views, show placeholder (keep current view for now)
             print(f"Clicked on {item_name} - not implemented yet")
+            return
+
+        # Add the new content widget
+        main_layout.addWidget(self.current_content_widget, 1)
 
     def add_transcript_entry(self, entry: TranscriptEntry):
         """Add a new transcript entry to the history"""
@@ -380,6 +402,57 @@ class MainWindow(QMainWindow):
         
         #actionButton:hover {
             background-color: #e0e0e0;
+        }
+        
+        /* Settings View Styles */
+        #settingsView {
+            background-color: #f8f9fa;
+            border: none;
+        }
+        
+        #settingsTitle {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        #settingsSection {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        #sectionTitle {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        #settingLabel {
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            padding: 5px 0;
+        }
+        
+        #apiKeyInput {
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            background-color: #ffffff;
+        }
+        
+        #apiKeyInput:focus {
+            border-color: #007AFF;
+            outline: none;
+        }
+        
+        #apiKeyInput::placeholder {
+            color: #999;
         }
         """
 
