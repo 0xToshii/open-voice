@@ -6,10 +6,10 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QFrame,
     QScrollArea,
-    QComboBox,
 )
 from PySide6.QtCore import Qt
 from src.interfaces.settings import ISettingsManager
+from src.ui.components.custom_dropdown import CustomDropdown
 
 
 class SettingsView(QScrollArea):
@@ -68,17 +68,16 @@ class SettingsView(QScrollArea):
         provider_label.setObjectName("settingLabel")
         provider_label.setMinimumWidth(120)
 
-        self.provider_combo = QComboBox()
-        self.provider_combo.setObjectName("providerCombo")
-        self.provider_combo.addItem("Local", "local")
-        self.provider_combo.addItem("OpenAI", "openai")
+        self.provider_combo = CustomDropdown()
+        self.provider_combo.add_item("Local", "local")
+        self.provider_combo.add_item("OpenAI", "openai")
 
         # Set current provider
         current_provider = self.settings_manager.get_selected_provider()
-        for i in range(self.provider_combo.count()):
-            if self.provider_combo.itemData(i) == current_provider:
-                self.provider_combo.setCurrentIndex(i)
-                break
+        if current_provider == "local":
+            self.provider_combo.set_current_index(0)
+        elif current_provider == "openai":
+            self.provider_combo.set_current_index(1)
 
         provider_row.addWidget(provider_label)
         provider_row.addWidget(self.provider_combo, 1)
@@ -108,15 +107,15 @@ class SettingsView(QScrollArea):
 
     def connect_signals(self):
         """Connect input field changes to settings manager"""
-        self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
+        self.provider_combo.current_index_changed.connect(self.on_provider_changed)
         self.api_key_input.textChanged.connect(self.on_api_key_changed)
 
         # Listen for external setting changes
         self.settings_manager.setting_changed.connect(self.on_setting_changed)
 
-    def on_provider_changed(self):
+    def on_provider_changed(self, index: int):
         """Handle provider selection change"""
-        selected_provider = self.provider_combo.currentData()
+        selected_provider = self.provider_combo.current_data()
         if selected_provider:
             self.settings_manager.set_selected_provider(selected_provider)
             self.update_ui_for_provider()
@@ -150,10 +149,10 @@ class SettingsView(QScrollArea):
         """Update UI when settings change externally"""
         if key == "selected_provider":
             # Update provider dropdown
-            for i in range(self.provider_combo.count()):
-                if self.provider_combo.itemData(i) == value:
-                    self.provider_combo.setCurrentIndex(i)
-                    break
+            if value == "local":
+                self.provider_combo.set_current_index(0)
+            elif value == "openai":
+                self.provider_combo.set_current_index(1)
             self.update_ui_for_provider()
         elif key.startswith("provider_api_key_"):
             # Update API key field if it matches current provider
