@@ -240,9 +240,7 @@ class PlaceholderView(QScrollArea):
         layout.addWidget(title_label)
 
         # Description
-        desc_label = QLabel(
-            f"The {self.title.lower()} feature will be implemented here."
-        )
+        desc_label = QLabel(f"Coming soon.")
         desc_label.setObjectName("placeholderDesc")
         layout.addWidget(desc_label)
 
@@ -593,7 +591,6 @@ class MainWindow(QMainWindow):
             border-radius: 6px;
             padding: 12px;
             font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #ffffff !important;
             color: #333333;
             line-height: 1.4;

@@ -30,8 +30,8 @@ class SettingsView(QScrollArea):
         # Content widget
         content_widget = QWidget()
         layout = QVBoxLayout()
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(30)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
 
         # Title
         title_label = QLabel("SETTINGS")
@@ -54,8 +54,8 @@ class SettingsView(QScrollArea):
         section.setObjectName("settingsSection")
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        layout.setContentsMargins(20, 15, 20, 20)
+        layout.setSpacing(15)
 
         # Section title
         section_title = QLabel("Provider Configuration")

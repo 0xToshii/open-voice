@@ -94,11 +94,13 @@ class DropdownList(QWidget):
             # Draw text - ALWAYS use dark color for visibility
             painter.setPen(QColor(40, 40, 40))  # Dark gray for ALL text
             if i == self.selected_index:
-                font = QFont("SF Pro Display", 14)
+                font = QFont()
+                font.setPointSize(14)
                 font.setBold(True)
                 painter.setFont(font)
             else:
-                font = QFont("SF Pro Display", 14)
+                font = QFont()
+                font.setPointSize(14)
                 font.setBold(False)
                 painter.setFont(font)
 
@@ -282,7 +284,8 @@ class CustomDropdown(QWidget):
         # Draw text
         if self.items and 0 <= self.current_index < len(self.items):
             text = self.items[self.current_index]["text"]
-            font = QFont("SF Pro Display", 14)
+            font = QFont()
+            font.setPointSize(14)
             font.setBold(False)
             painter.setFont(font)
             painter.setPen(QColor(51, 51, 51))

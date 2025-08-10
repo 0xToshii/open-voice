@@ -28,15 +28,15 @@ class CustomInstructionsView(QScrollArea):
         # Content widget
         content_widget = QWidget()
         layout = QVBoxLayout()
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(30)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
 
         # Title
         title_label = QLabel("Custom Instructions")
         title_label.setObjectName("customInstructionsTitle")
         layout.addWidget(title_label)
 
-        # Description
+        # Description - tighter spacing with title
         description_label = QLabel(
             'Provide style preferences or instructions. For example: "Use all lowercase words," or "Use bullet points when creating lists."'
         )
@@ -44,7 +44,7 @@ class CustomInstructionsView(QScrollArea):
         description_label.setWordWrap(True)
         layout.addWidget(description_label)
 
-        # Instructions input section
+        # Instructions input section - closer to description
         instructions_section = self.create_instructions_section()
         layout.addWidget(instructions_section)
 
@@ -60,8 +60,8 @@ class CustomInstructionsView(QScrollArea):
         section.setObjectName("instructionsSection")
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(20, 15, 20, 20)
+        layout.setSpacing(8)
 
         # Text area for instructions
         self.instructions_input = QTextEdit()
