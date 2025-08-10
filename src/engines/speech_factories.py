@@ -4,7 +4,7 @@ from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
 from src.engines.openai_speech import OpenAIWhisperEngine
 from src.engines.speech_engine import SpeechRecognitionEngine
-from src.engines.mock_speech import MockSpeechEngine
+from src.engines.local_whisper_speech import LocalWhisperEngine
 
 
 class OpenAIWhisperFactory(ISpeechEngineFactory):
@@ -20,8 +20,6 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
             "name": "OpenAI Whisper",
             "id": "openai",
             "provider": "OpenAI",
-            "accuracy": "High",
-            "language_support": "Multilingual",
             "requires_internet": True,
             "requires_api_key": True,
             "model": "whisper-1",
@@ -49,8 +47,6 @@ class GoogleSpeechFactory(ISpeechEngineFactory):
             "name": "Google Speech Recognition",
             "id": "google",
             "provider": "Google",
-            "accuracy": "Good",
-            "language_support": "Multilingual",
             "requires_internet": True,
             "requires_api_key": False,
         }
@@ -65,25 +61,24 @@ class GoogleSpeechFactory(ISpeechEngineFactory):
             return False
 
 
-class MockSpeechFactory(ISpeechEngineFactory):
-    """Factory for creating Mock speech engines"""
+class LocalWhisperFactory(ISpeechEngineFactory):
+    """Factory for creating Local Whisper engines"""
 
     def create_engine(self, settings: ISettingsManager) -> ISpeechEngine:
-        """Create Mock speech engine instance"""
-        return MockSpeechEngine()
+        """Create Local Whisper engine instance"""
+        return LocalWhisperEngine(settings)
 
     def get_engine_info(self) -> Dict[str, Any]:
-        """Get information about Mock speech engine"""
+        """Get information about Local Whisper"""
         return {
-            "name": "Mock Speech Engine",
-            "id": "mock",
-            "provider": "Internal",
-            "accuracy": "Perfect (Mock)",
-            "language_support": "English",
+            "name": "Local Whisper",
+            "id": "local_whisper",
+            "provider": "Local",
             "requires_internet": False,
             "requires_api_key": False,
+            "model_sizes": ["tiny", "base", "small", "medium", "large"],
         }
 
     def is_available(self, settings: ISettingsManager) -> bool:
-        """Mock engine is always available"""
+        """Local Whisper is available if we can import it (which we already did)"""
         return True

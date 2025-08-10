@@ -112,21 +112,19 @@ class VoiceRecordingService(QObject):
         try:
             # Check if we have audio data
             if not audio_data:
-                print("⚠️ No audio data available - aborting processing")
+                print("No audio data available - aborting processing")
                 return
 
             # Check if audio recorder detected silence (returns empty bytes)
             if len(audio_data) == 0:
-                print("🔇 Silence detected by audio recorder - aborting processing")
+                print("Silence detected by audio recorder - aborting processing")
                 return  # Early exit - no transcription, no text insertion
 
-            print(f"🔄 Processing real audio data ({len(audio_data)} bytes)")
+            print(f"Processing real audio data ({len(audio_data)} bytes)")
 
             # Additional silence check using our own analysis (backup)
             if self._is_silent_audio(audio_data):
-                print(
-                    "🔇 No speech detected by secondary analysis - aborting processing"
-                )
+                print("No speech detected by secondary analysis - aborting processing")
                 return  # Early exit - no transcription, no text insertion
 
             # Only proceed if we detected actual speech
@@ -135,11 +133,9 @@ class VoiceRecordingService(QObject):
             # Log which engine was actually used
             engine_info = self.speech_router.get_last_used_engine_info()
             if engine_info["success"]:
-                print(
-                    f"🎯 Used engine: {engine_info['name']} ({engine_info['provider']})"
-                )
+                print(f"Used engine: {engine_info['name']} ({engine_info['provider']})")
             else:
-                print(f"⚠️ Engine failed: {engine_info.get('error', 'Unknown error')}")
+                print(f"Engine failed: {engine_info.get('error', 'Unknown error')}")
 
             # Process text through LLM pipeline
             processed_text = self.text_processor.process_text(original_text)
@@ -167,29 +163,27 @@ class VoiceRecordingService(QObject):
             # Insert processed text into target application
             self.insert_text(processed_text, transcript_id)
 
-            print(
-                f"✅ Transcript created: '{original_text}' (Duration: {duration:.1f}s)"
-            )
+            print(f"Transcript created: '{original_text}' (Duration: {duration:.1f}s)")
 
         except Exception as e:
-            print(f"❌ Error processing recording: {e}")
+            print(f"Error processing recording: {e}")
 
     def _store_focus_if_supported(self):
         """Store current focus if the text inserter supports focus management"""
         try:
             if hasattr(self.text_inserter, "store_current_focus"):
-                print("💾 Storing focus before recording...")
+                print("Storing focus before recording...")
                 success = self.text_inserter.store_current_focus()
                 if success:
-                    print("✅ Focus stored successfully")
+                    print("Focus stored successfully")
                 else:
                     print(
-                        "⚠️ Could not store focus, will use current focus when inserting"
+                        "Could not store focus, will use current focus when inserting"
                     )
             else:
-                print("ℹ️ Text inserter does not support focus management")
+                print("ℹText inserter does not support focus management")
         except Exception as e:
-            print(f"❌ Error storing focus: {e}")
+            print(f"Error storing focus: {e}")
 
     def insert_text(self, text: str, transcript_id: int):
         """Insert text with focus management if supported"""
@@ -199,27 +193,27 @@ class VoiceRecordingService(QObject):
                 self.data_store.mark_insertion_status(transcript_id, True)
                 return
 
-            print(f"📝 Inserting text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
+            print(f"Inserting text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
 
             # Try focus-aware insertion first if supported
             success = False
             if hasattr(self.text_inserter, "insert_text_with_focus_management"):
-                print("🎯 Using focus-aware text insertion")
+                print("Using focus-aware text insertion")
                 success = self.text_inserter.insert_text_with_focus_management(text)
             else:
-                print("📋 Using standard text insertion")
+                print("Using standard text insertion")
                 success = self.text_inserter.insert_text(text)
 
             if success:
-                print(f"✅ Text insertion successful")
+                print(f"Text insertion successful")
             else:
-                print(f"❌ Text insertion failed")
+                print(f"Text insertion failed")
 
             # Mark insertion status in database
             self.data_store.mark_insertion_status(transcript_id, success)
 
         except Exception as e:
-            print(f"❌ Text insertion error: {e}")
+            print(f"Text insertion error: {e}")
             self.data_store.mark_insertion_status(transcript_id, False)
 
     def get_text_inserter_info(self) -> dict:
@@ -231,9 +225,9 @@ class VoiceRecordingService(QObject):
         if inserter and inserter.is_available():
             self.text_inserter = inserter
             capabilities = inserter.get_capabilities()
-            print(f"🔧 Text inserter changed to: {capabilities['name']}")
+            print(f"Text inserter changed to: {capabilities['name']}")
         else:
-            print("❌ Cannot set text inserter: not available or invalid")
+            print("Cannot set text inserter: not available or invalid")
 
     def get_speech_router_info(self) -> dict:
         """Get information about the speech router and available engines"""
@@ -275,7 +269,7 @@ class VoiceRecordingService(QObject):
             SILENCE_THRESHOLD = 500  # Below this = silence
             MIN_DYNAMIC_RANGE = 100  # Variation needed for speech
 
-            print(f"🔊 Audio analysis: RMS={rms:.1f}, samples={len(samples)}")
+            print(f"Audio analysis: RMS={rms:.1f}, samples={len(samples)}")
 
             # Check 1: Overall amplitude
             if rms < SILENCE_THRESHOLD:
@@ -293,11 +287,11 @@ class VoiceRecordingService(QObject):
                 print(f"   Too static (range {dynamic_range} < {MIN_DYNAMIC_RANGE})")
                 return True  # Likely just consistent background noise
 
-            print("   ✅ Speech detected - proceeding with transcription")
+            print("   Speech detected - proceeding with transcription")
             return False  # Probably contains speech
 
         except Exception as e:
-            print(f"⚠️ Audio analysis failed: {e}")
+            print(f"Audio analysis failed: {e}")
             return False  # When in doubt, process it
 
     def get_audio_recorder(self) -> IAudioRecorder:
@@ -330,7 +324,7 @@ class MockVoiceRecordingService(QObject):
 
     def simulate_recording(self):
         """Simulate a complete recording cycle"""
-        print("🔴 Mock recording started")
+        print("Mock recording started")
 
         # Get next mock text
         text = self.mock_texts[self.text_index]
@@ -346,7 +340,7 @@ class MockVoiceRecordingService(QObject):
             inserted_successfully=True,
         )
 
-        print(f"⚫ Mock recording completed: '{text}'")
+        print(f"Mock recording completed: '{text}'")
 
         # Emit signal
         self.transcript_created.emit(entry)

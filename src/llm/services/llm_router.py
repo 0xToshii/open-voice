@@ -1,7 +1,8 @@
 from typing import Dict, Any, List, Tuple, Callable
 from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.interfaces.llm_client import ILLMClient
-from src.llm.clients.cerebras_client import CerebrasLLMClient, MockLLMClient
+from src.llm.clients.cerebras_client import CerebrasLLMClient
+from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.interfaces.settings import ISettingsManager
 
 
@@ -48,14 +49,14 @@ class LLMRouter(ILLMRouter):
         # Attempt each LLM in order
         for llm_name, llm_creator in llms_to_try:
             try:
-                print(f"🧠 Attempting: {llm_name}")
+                print(f"Attempting: {llm_name}")
 
                 # Create LLM client on demand (fresh instance each time)
                 llm_client = llm_creator()
 
                 # Check if client is available (has valid key)
                 if not llm_client.is_available():
-                    print(f"⚠️ {llm_name} not available (no valid key)")
+                    print(f"{llm_name} not available (no valid key)")
                     continue
 
                 # Attempt processing
@@ -63,7 +64,7 @@ class LLMRouter(ILLMRouter):
 
                 # Check if result is valid
                 if result and result.strip():
-                    print(f"✅ Success with: {llm_name}")
+                    print(f"Success with: {llm_name}")
 
                     # Record successful LLM use
                     model_info = llm_client.get_model_info()
@@ -76,14 +77,14 @@ class LLMRouter(ILLMRouter):
 
                     return result.strip()
                 else:
-                    print(f"⚠️ {llm_name} returned empty result")
+                    print(f"{llm_name} returned empty result")
 
             except Exception as e:
-                print(f"❌ {llm_name} failed: {e}")
+                print(f"{llm_name} failed: {e}")
                 continue
 
         # All LLMs failed
-        print("❌ All LLM clients failed")
+        print("All LLM clients failed")
         self._last_llm_info = {
             "provider": "All providers",
             "model": "Multiple",
@@ -103,8 +104,8 @@ class LLMRouter(ILLMRouter):
                 ("Cerebras", lambda: CerebrasLLMClient(self.settings_manager))
             )
 
-        # 2. Always add Mock as final fallback
-        llms_to_try.append(("Mock LLM", lambda: MockLLMClient()))
+        # 2. Always add Passthrough as final fallback
+        llms_to_try.append(("Passthrough LLM", lambda: PassthroughLLMClient()))
 
         return llms_to_try
 
@@ -128,13 +129,13 @@ class LLMRouter(ILLMRouter):
                 except Exception:
                     pass  # Cerebras not available
 
-            # Mock is always available
-            available_llms.append("Mock LLM")
+            # Passthrough is always available
+            available_llms.append("Passthrough LLM")
 
         except Exception as e:
-            print(f"❌ Error checking available LLMs: {e}")
-            # Fallback to Mock only
-            available_llms = ["Mock LLM"]
+            print(f"Error checking available LLMs: {e}")
+            # Fallback to Passthrough only
+            available_llms = ["Passthrough LLM"]
 
         return available_llms
 
@@ -144,42 +145,4 @@ class LLMRouter(ILLMRouter):
             available_llms = self.get_available_llms()
             return len(available_llms) > 0
         except Exception:
-            return True  # Mock is always available as fallback
-
-
-class MockLLMRouter(ILLMRouter):
-    """Mock LLM router for testing"""
-
-    def __init__(self):
-        self._last_llm_info = {
-            "provider": "Mock",
-            "model": "mock-router-v1",
-            "success": True,
-            "error": None,
-        }
-
-    def process_with_best_llm(self, system_prompt: str, user_input: str) -> str:
-        """Mock processing with simulated routing"""
-        if not user_input or not user_input.strip():
-            return user_input
-
-        print("🧠 Mock Router: Processing with best available LLM")
-        print("✅ Mock Router: Success with Mock LLM")
-
-        # Simple mock processing based on system prompt
-        if "custom" in system_prompt.lower():
-            return user_input.lower()  # Mock custom instruction processing
-        else:
-            return f"[Mock-Processed] {user_input.strip()}"
-
-    def get_last_used_llm_info(self) -> Dict[str, Any]:
-        """Get mock LLM info"""
-        return self._last_llm_info.copy()
-
-    def get_available_llms(self) -> List[str]:
-        """Get mock available LLMs"""
-        return ["Mock LLM"]
-
-    def is_available(self) -> bool:
-        """Mock router is always available"""
-        return True
+            return True  # Passthrough is always available as fallback

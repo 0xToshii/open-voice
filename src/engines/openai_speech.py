@@ -15,7 +15,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
         self.settings_manager = settings_manager
         self.client = None
         self._initialize_client()
-        print("🤖 OpenAI Whisper engine initialized")
+        print("OpenAI Whisper engine initialized")
 
     def _initialize_client(self):
         """Initialize OpenAI client with API key"""
@@ -23,12 +23,12 @@ class OpenAIWhisperEngine(ISpeechEngine):
             api_key = self.settings_manager.get_openai_key()
             if api_key and api_key.strip():
                 self.client = OpenAI(api_key=api_key.strip())
-                print("✅ OpenAI client initialized")
+                print("OpenAI client initialized")
             else:
-                print("⚠️ No OpenAI API key provided")
+                print("No OpenAI API key provided")
                 self.client = None
         except Exception as e:
-            print(f"❌ Failed to initialize OpenAI client: {e}")
+            print(f"Failed to initialize OpenAI client: {e}")
             self.client = None
 
     def transcribe(self, audio_data: bytes) -> str:
@@ -42,7 +42,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
                 if not self.client:
                     return "OpenAI API key not configured"
 
-            print(f"🔄 Processing {len(audio_data)} bytes with OpenAI Whisper...")
+            print(f"Processing {len(audio_data)} bytes with OpenAI Whisper...")
 
             # Convert raw audio bytes to WAV format for OpenAI
             wav_data = self._bytes_to_wav(audio_data)
@@ -64,7 +64,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
                 text = response.strip() if response else ""
 
                 if text:
-                    print(f"✅ OpenAI Whisper transcribed: '{text}'")
+                    print(f"OpenAI Whisper transcribed: '{text}'")
                     return text
                 else:
                     return "Could not understand audio"
@@ -77,7 +77,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
                     pass
 
         except Exception as e:
-            print(f"❌ OpenAI Whisper error: {e}")
+            print(f"OpenAI Whisper error: {e}")
 
             # Check for common API errors
             if "Invalid API key" in str(e) or "Unauthorized" in str(e):
@@ -102,7 +102,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
             return self.client is not None
 
         except Exception as e:
-            print(f"❌ OpenAI availability check failed: {e}")
+            print(f"OpenAI availability check failed: {e}")
             return False
 
     def _bytes_to_wav(self, audio_bytes: bytes) -> Optional[bytes]:
@@ -126,7 +126,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
             return wav_data
 
         except Exception as e:
-            print(f"❌ WAV conversion error: {e}")
+            print(f"WAV conversion error: {e}")
             return None
 
     def update_api_key(self, api_key: str):

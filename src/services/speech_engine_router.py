@@ -50,7 +50,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         # Attempt each engine in order
         for engine_name, engine_creator in engines_to_try:
             try:
-                print(f"🎤 Attempting: {engine_name}")
+                print(f"Attempting: {engine_name}")
 
                 # Create engine on demand (fresh instance each time)
                 engine = engine_creator()
@@ -60,7 +60,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
 
                 # Check if result is valid
                 if result and result.strip() and not self._is_error_result(result):
-                    print(f"✅ Success with: {engine_name}")
+                    print(f"Success with: {engine_name}")
 
                     # Record successful engine use
                     self._last_engine_info = {
@@ -72,14 +72,14 @@ class SpeechEngineRouter(ISpeechEngineRouter):
 
                     return result.strip()
                 else:
-                    print(f"⚠️ {engine_name} returned empty/invalid result: '{result}'")
+                    print(f"{engine_name} returned empty/invalid result: '{result}'")
 
             except Exception as e:
-                print(f"❌ {engine_name} failed: {e}")
+                print(f"{engine_name} failed: {e}")
                 continue
 
         # All engines failed
-        print("❌ All speech engines failed")
+        print("All speech engines failed")
         self._last_engine_info = {
             "name": "All engines",
             "provider": "Multiple",
@@ -89,40 +89,30 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         return "Speech recognition failed - all engines unavailable"
 
     def _get_engines_in_priority_order(self) -> List[Tuple[str, Callable]]:
-        """Get list of engines to try in priority order based on current settings"""
+        """Get list of engines to try in priority order from registry"""
         engines_to_try = []
 
-        # 1. Try OpenAI Whisper first if API key is available
-        openai_key = self.settings_manager.get_openai_key()
-        if openai_key and openai_key.strip():
-            engines_to_try.append(
-                (
-                    "OpenAI Whisper",
-                    lambda: self.speech_registry.create_engine_by_name(
-                        "openai", self.settings_manager
-                    ),
-                )
+        try:
+            # Get available engines from registry (already in priority order)
+            available_engines = self.speech_registry.get_available_engines(
+                self.settings_manager
             )
 
-        # 2. Try Google Speech Recognition as fallback
-        engines_to_try.append(
-            (
-                "Google Speech",
-                lambda: self.speech_registry.create_engine_by_name(
-                    "google", self.settings_manager
-                ),
-            )
-        )
+            for engine_info in available_engines:
+                if engine_info.get("available", False):
+                    engine_name = engine_info.get("name", "Unknown")
+                    engine_id = engine_info.get("id", "unknown")
 
-        # 3. Try Mock engine as final fallback
-        engines_to_try.append(
-            (
-                "Mock Speech",
-                lambda: self.speech_registry.create_engine_by_name(
-                    "mock", self.settings_manager
-                ),
-            )
-        )
+                    engines_to_try.append(
+                        (
+                            engine_name,
+                            lambda eid=engine_id: self.speech_registry.create_engine_by_name(
+                                eid, self.settings_manager
+                            ),
+                        )
+                    )
+        except Exception as e:
+            print(f"Error getting engines from registry: {e}")
 
         return engines_to_try
 
@@ -147,8 +137,8 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         """Get the provider name for an engine"""
         provider_map = {
             "OpenAI Whisper": "OpenAI",
-            "Google Speech": "Google",
-            "Mock Speech": "Mock",
+            "Google Speech Recognition": "Google",
+            "Local Whisper": "Local",
         }
         return provider_map.get(engine_name, "Unknown")
 
@@ -164,7 +154,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
             )
             return [engine.get("name", "Unknown") for engine in available_engines]
         except Exception as e:
-            print(f"❌ Error getting available engines: {e}")
+            print(f"Error getting available engines: {e}")
             return []
 
     def is_available(self) -> bool:
@@ -174,38 +164,3 @@ class SpeechEngineRouter(ISpeechEngineRouter):
             return len(available_engines) > 0
         except Exception:
             return False
-
-
-class MockSpeechEngineRouter(ISpeechEngineRouter):
-    """Mock speech engine router for testing"""
-
-    def __init__(self):
-        self._last_engine_info = {
-            "name": "MockEngine",
-            "provider": "Mock",
-            "success": True,
-            "error": None,
-        }
-
-    def transcribe_with_fallback(self, audio_data: bytes) -> str:
-        """Mock transcription with simulated processing"""
-        if not audio_data:
-            return "No audio data received"
-
-        print("🎤 Mock Router: Processing audio with fallback")
-        print("✅ Mock Router: Success with MockEngine")
-
-        # Return mock transcription
-        return "This is a mock transcription from the router."
-
-    def get_last_used_engine_info(self) -> Dict[str, Any]:
-        """Get mock engine info"""
-        return self._last_engine_info.copy()
-
-    def get_available_engines(self) -> List[str]:
-        """Get mock available engines"""
-        return ["MockEngine"]
-
-    def is_available(self) -> bool:
-        """Mock router is always available"""
-        return True

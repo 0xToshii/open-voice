@@ -40,11 +40,11 @@ class CerebrasLLMClient(ILLMClient):
         }
 
         try:
-            print(f"🧠 Cerebras LLM: Processing text with {self.model}")
+            print(f"Cerebras LLM: Processing text with {self.model}")
             print(
                 f" - System prompt: {system_prompt[:100]}{'...' if len(system_prompt) > 100 else ''}"
             )
-            print(print(f" - Input: {user_input_prompt}"))
+            print(f" - Input: {user_input_prompt}")
 
             response = requests.post(
                 f"{self.api_base_url}/chat/completions",
@@ -67,13 +67,13 @@ class CerebrasLLMClient(ILLMClient):
             return generated_text
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Cerebras API request failed: {e}")
+            print(f"Cerebras API request failed: {e}")
             raise Exception(f"Cerebras API request failed: {e}")
         except json.JSONDecodeError as e:
-            print(f"❌ Cerebras API response parsing failed: {e}")
+            print(f"Cerebras API response parsing failed: {e}")
             raise Exception(f"Invalid JSON response from Cerebras API: {e}")
         except Exception as e:
-            print(f"❌ Cerebras LLM generation failed: {e}")
+            print(f"Cerebras LLM generation failed: {e}")
             raise
 
     def is_available(self) -> bool:
@@ -90,35 +90,4 @@ class CerebrasLLMClient(ILLMClient):
             "max_tokens": 2048,
             "temperature": 0.1,
             "available": self.is_available(),
-        }
-
-
-class MockLLMClient(ILLMClient):
-    """Mock LLM client for testing without API calls"""
-
-    def __init__(self):
-        self.call_count = 0
-
-    def generate(self, system_prompt: str, user_input: str) -> str:
-        """Return user input as-is (passthrough for testing)"""
-        self.call_count += 1
-
-        print(f"🧠 Mock LLM: Call #{self.call_count} (passthrough)")
-        print(f"   Input: {user_input}")
-        print(f"   Output: {user_input}")
-
-        return user_input
-
-    def is_available(self) -> bool:
-        """Mock is always available"""
-        return True
-
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get mock model information"""
-        return {
-            "provider": "Mock",
-            "model": "mock-llm-v1",
-            "api_base": "mock://localhost",
-            "available": True,
-            "call_count": self.call_count,
         }

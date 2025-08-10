@@ -10,7 +10,7 @@ from src.services.speech_registry import SpeechEngineRegistry
 from src.engines.speech_factories import (
     OpenAIWhisperFactory,
     GoogleSpeechFactory,
-    MockSpeechFactory,
+    LocalWhisperFactory,
 )
 from src.services.recording_service import VoiceRecordingService
 from src.services.settings_manager import SettingsManager
@@ -23,9 +23,10 @@ from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
 from src.llm.interfaces.llm_client import ILLMClient
 from src.llm.interfaces.prompt_provider import IPromptProvider
 from src.llm.interfaces.llm_router import ILLMRouter
-from src.llm.clients.cerebras_client import CerebrasLLMClient, MockLLMClient
+from src.llm.clients.cerebras_client import CerebrasLLMClient
+from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.llm.services.prompt_manager import FilePromptProvider, MockPromptProvider
-from src.llm.services.llm_router import LLMRouter, MockLLMRouter
+from src.llm.services.llm_router import LLMRouter
 from src.llm.services.llm_text_processor import (
     LLMTextProcessor,
     PassthroughTextProcessor,
@@ -33,7 +34,7 @@ from src.llm.services.llm_text_processor import (
 
 # Speech Router imports
 from src.interfaces.speech_router import ISpeechEngineRouter
-from src.services.speech_engine_router import SpeechEngineRouter, MockSpeechEngineRouter
+from src.services.speech_engine_router import SpeechEngineRouter
 
 
 class DIContainer:
@@ -85,52 +86,46 @@ class DIContainer:
         return self._data_store
 
     def get_llm_client(self) -> ILLMClient:
-        """Get LLM client (Cerebras or mock based on configuration)"""
+        """Get LLM client (Cerebras or passthrough based on configuration)"""
         if self._llm_client is None:
             if self._use_mock_llm:
-                print("🎭 Using mock LLM client")
-                self._llm_client = MockLLMClient()
+                print("Using passthrough LLM client for testing")
+                self._llm_client = PassthroughLLMClient()
             else:
                 try:
                     settings = self.get_settings_manager()
                     self._llm_client = CerebrasLLMClient(settings)
                     if self._llm_client.is_available():
-                        print("✅ Using Cerebras LLM client")
+                        print("Using Cerebras LLM client")
                     else:
-                        print("⚠️ Cerebras not available, falling back to mock LLM")
-                        self._llm_client = MockLLMClient()
+                        print("Cerebras not available, falling back to passthrough LLM")
+                        self._llm_client = PassthroughLLMClient()
                 except Exception as e:
-                    print(f"⚠️ Falling back to mock LLM client: {e}")
-                    self._llm_client = MockLLMClient()
+                    print(f"Falling back to passthrough LLM client: {e}")
+                    self._llm_client = PassthroughLLMClient()
         return self._llm_client
 
     def get_prompt_provider(self) -> IPromptProvider:
         """Get prompt provider (file-based or mock based on configuration)"""
         if self._prompt_provider is None:
             if self._use_mock_llm:
-                print("🎭 Using mock prompt provider")
+                print("Using mock prompt provider")
                 self._prompt_provider = MockPromptProvider()
             else:
                 try:
                     self._prompt_provider = FilePromptProvider("prompts")
-                    print("✅ Using file-based prompt provider")
+                    print("Using file-based prompt provider")
                 except Exception as e:
-                    print(f"⚠️ Falling back to mock prompt provider: {e}")
+                    print(f"Falling back to mock prompt provider: {e}")
                     self._prompt_provider = MockPromptProvider()
         return self._prompt_provider
 
     def get_llm_router(self) -> ILLMRouter:
         """Get LLM router with dynamic client selection"""
         if self._llm_router is None:
-            try:
-                settings_manager = self.get_settings_manager()
-
-                self._llm_router = LLMRouter(settings_manager=settings_manager)
-                print("✅ Using real LLM router")
-
-            except Exception as e:
-                print(f"⚠️ Falling back to mock LLM router: {e}")
-                self._llm_router = MockLLMRouter()
+            settings_manager = self.get_settings_manager()
+            self._llm_router = LLMRouter(settings_manager=settings_manager)
+            print("Using LLM router with PassthroughLLMClient fallback")
 
         return self._llm_router
 
@@ -149,18 +144,16 @@ class DIContainer:
                         prompt_provider=prompt_provider,
                         settings_manager=settings,
                     )
-                    print("✅ Using LLM text processor with router")
+                    print("Using LLM text processor with router")
                 else:
                     # Fallback to passthrough
                     self._text_processor = PassthroughTextProcessor()
-                    print(
-                        "⚠️ LLM router not available, using passthrough text processor"
-                    )
+                    print("LLM router not available, using passthrough text processor")
 
             except Exception as e:
-                print(f"⚠️ Failed to create LLM text processor: {e}")
+                print(f"Failed to create LLM text processor: {e}")
                 self._text_processor = PassthroughTextProcessor()
-                print("⚠️ Using passthrough text processor as fallback")
+                print("Using passthrough text processor as fallback")
 
         return self._text_processor
 
@@ -174,11 +167,11 @@ class DIContainer:
                 self._speech_router = SpeechEngineRouter(
                     speech_registry=speech_registry, settings_manager=settings_manager
                 )
-                print("✅ Using real speech engine router")
+                print("Using real speech engine router")
 
             except Exception as e:
-                print(f"⚠️ Falling back to mock speech router: {e}")
-                self._speech_router = MockSpeechEngineRouter()
+                print(f"Failed to create speech engine router: {e}")
+                raise RuntimeError(f"Speech engine router initialization failed: {e}")
 
         return self._speech_router
 
@@ -193,14 +186,14 @@ class DIContainer:
         """Get audio recorder (mock or real based on configuration)"""
         if self._audio_recorder is None:
             if self._use_mock_audio:
-                print("🎭 Using mock audio recorder")
+                print("Using mock audio recorder")
                 self._audio_recorder = MockAudioRecorder()
             else:
                 try:
                     self._audio_recorder = PyAudioRecorder()
-                    print("✅ Using real audio recorder")
+                    print("Using real audio recorder")
                 except Exception as e:
-                    print(f"⚠️ Falling back to mock audio recorder: {e}")
+                    print(f"Falling back to mock audio recorder: {e}")
                     self._audio_recorder = MockAudioRecorder()
         return self._audio_recorder
 
@@ -208,14 +201,14 @@ class DIContainer:
         """Get hotkey handler (mock or real based on configuration)"""
         if self._hotkey_handler is None:
             if self._use_mock_hotkey:
-                print("🎭 Using mock hotkey handler")
+                print("Using mock hotkey handler")
                 self._hotkey_handler = MockHotkeyHandler()
             else:
                 try:
                     self._hotkey_handler = CmdOptionHandler()
-                    print("✅ Using Cmd+Option hotkey handler")
+                    print("Using Cmd+Option hotkey handler")
                 except Exception as e:
-                    print(f"⚠️ Falling back to mock hotkey handler: {e}")
+                    print(f"Falling back to mock hotkey handler: {e}")
                     self._hotkey_handler = MockHotkeyHandler()
         return self._hotkey_handler
 
@@ -245,13 +238,15 @@ class DIContainer:
             name="openai", factory=OpenAIWhisperFactory(), priority=100
         )
 
-        # Google Speech Recognition as fallback
-        registry.register_engine(
-            name="google", factory=GoogleSpeechFactory(), priority=50
-        )
+        # Google Speech Recognition as fallback (commented out for local testing)
+        # registry.register_engine(
+        #     name="google", factory=GoogleSpeechFactory(), priority=50
+        # )
 
-        # Mock engine as final fallback
-        registry.register_engine(name="mock", factory=MockSpeechFactory(), priority=10)
+        # Local Whisper as additional fallback (no internet required)
+        registry.register_engine(
+            name="local_whisper", factory=LocalWhisperFactory(), priority=10
+        )
 
     def create_speech_engine_by_name(self, engine_name: str) -> ISpeechEngine:
         """Create a specific speech engine by name"""
@@ -277,4 +272,4 @@ class DIContainer:
         self._prompt_provider = None
         self._llm_router = None
         self._speech_router = None
-        print("🔄 DI Container reset")
+        print("DI Container reset")
