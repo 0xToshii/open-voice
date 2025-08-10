@@ -1,7 +1,8 @@
-from typing import Dict, Any, List, Tuple, Callable
+from typing import Dict, Any, List, Tuple
 from src.interfaces.speech_router import ISpeechEngineRouter
 from src.interfaces.speech_factory import ISpeechEngineRegistry
 from src.interfaces.settings import ISettingsManager
+from src.interfaces.speech import ISpeechEngine
 
 
 class SpeechEngineRouter(ISpeechEngineRouter):
@@ -15,6 +16,9 @@ class SpeechEngineRouter(ISpeechEngineRouter):
     ):
         self.speech_registry = speech_registry
         self.settings_manager = settings_manager
+
+        # Engine caching for performance
+        self._engine_cache: Dict[str, ISpeechEngine] = {}
 
         # Track last used engine for reporting
         self._last_engine_info = {
@@ -48,12 +52,12 @@ class SpeechEngineRouter(ISpeechEngineRouter):
             return "No speech engines available"
 
         # Attempt each engine in order
-        for engine_name, engine_creator in engines_to_try:
+        for engine_name, engine_id in engines_to_try:
             try:
                 print(f"Attempting: {engine_name}")
 
-                # Create engine on demand (fresh instance each time)
-                engine = engine_creator()
+                # Use cached engine or create if not exists
+                engine = self._get_cached_engine(engine_id)
 
                 # Attempt transcription
                 result = engine.transcribe(audio_data)
@@ -88,7 +92,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         }
         return "Speech recognition failed - all engines unavailable"
 
-    def _get_engines_in_priority_order(self) -> List[Tuple[str, Callable]]:
+    def _get_engines_in_priority_order(self) -> List[Tuple[str, str]]:
         """Get list of engines to try in priority order from registry"""
         engines_to_try = []
 
@@ -103,18 +107,24 @@ class SpeechEngineRouter(ISpeechEngineRouter):
                     engine_name = engine_info.get("name", "Unknown")
                     engine_id = engine_info.get("id", "unknown")
 
-                    engines_to_try.append(
-                        (
-                            engine_name,
-                            lambda eid=engine_id: self.speech_registry.create_engine_by_name(
-                                eid, self.settings_manager
-                            ),
-                        )
-                    )
+                    engines_to_try.append((engine_name, engine_id))
         except Exception as e:
             print(f"Error getting engines from registry: {e}")
 
         return engines_to_try
+
+    def _get_cached_engine(self, engine_id: str) -> ISpeechEngine:
+        """Get cached engine instance or create new one if not cached"""
+        if engine_id not in self._engine_cache:
+            print(f"Creating and caching engine: {engine_id}")
+            engine = self.speech_registry.create_engine_by_name(
+                engine_id, self.settings_manager
+            )
+            self._engine_cache[engine_id] = engine
+        else:
+            print(f"Using cached engine: {engine_id}")
+
+        return self._engine_cache[engine_id]
 
     def _is_error_result(self, result: str) -> bool:
         """Check if the result indicates an error condition"""

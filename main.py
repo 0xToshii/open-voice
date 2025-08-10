@@ -27,7 +27,10 @@ def main():
     # Configure for production use (real audio/hotkey handlers)
     # For testing, call: container.configure_for_testing()
 
-    # Get all dependencies from container
+    # Initialize all critical services for optimal performance
+    container.init_critical_services()
+
+    # Get all dependencies from container (these will now be cached)
     data_store = container.get_data_store()
     settings_manager = container.get_settings_manager()
     recording_service = container.get_recording_service()

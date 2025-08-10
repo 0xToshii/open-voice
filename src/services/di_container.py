@@ -260,6 +260,43 @@ class DIContainer:
         settings = self.get_settings_manager()
         return registry.get_available_engines(settings)
 
+    def init_critical_services(self):
+        """Initialize all performance-critical services at startup"""
+        print("Initializing critical services...")
+
+        try:
+            # Core recording pipeline - must be instant when user hits hotkey
+            print("  - Audio recorder...")
+            self.get_audio_recorder()
+
+            print("  - Speech router...")
+            speech_router = self.get_speech_router()
+
+            print("  - Pre-loading speech engines...")
+            # Eagerly load and cache all available speech engines
+            available_engines = speech_router._get_engines_in_priority_order()
+            for engine_name, engine_id in available_engines:
+                try:
+                    print(f"    - Loading {engine_name}...")
+                    speech_router._get_cached_engine(engine_id)
+                    print(f"    - {engine_name} loaded successfully")
+                except Exception as e:
+                    print(f"    - Failed to load {engine_name}: {e}")
+                    # Continue with other engines even if one fails
+                    continue
+
+            print("  - Hotkey handler...")
+            self.get_hotkey_handler()
+
+            print("  - Text processor...")
+            self.get_text_processor()
+
+            print("Critical services initialized successfully")
+
+        except Exception as e:
+            print(f"Critical services initialization failed: {e}")
+            raise RuntimeError(f"Failed to initialize critical services: {e}")
+
     def reset(self):
         """Reset all singletons (useful for testing)"""
         self._settings_manager = None
