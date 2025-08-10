@@ -71,6 +71,7 @@ class SettingsView(QScrollArea):
         self.provider_combo = CustomDropdown()
         self.provider_combo.add_item("Local", "local")
         self.provider_combo.add_item("OpenAI", "openai")
+        self.provider_combo.add_item("Groq", "groq")
 
         # Set current provider
         current_provider = self.settings_manager.get_selected_provider()
@@ -78,6 +79,8 @@ class SettingsView(QScrollArea):
             self.provider_combo.set_current_index(0)
         elif current_provider == "openai":
             self.provider_combo.set_current_index(1)
+        elif current_provider == "groq":
+            self.provider_combo.set_current_index(2)
 
         provider_row.addWidget(provider_label)
         provider_row.addWidget(self.provider_combo, 1)
@@ -144,6 +147,10 @@ class SettingsView(QScrollArea):
                 self.api_key_input.setPlaceholderText("Enter your OpenAI API key...")
                 current_key = self.settings_manager.get_provider_api_key("openai") or ""
                 self.api_key_input.setText(current_key)
+            elif current_provider == "groq":
+                self.api_key_input.setPlaceholderText("Enter your Groq API key...")
+                current_key = self.settings_manager.get_provider_api_key("groq") or ""
+                self.api_key_input.setText(current_key)
 
     def on_setting_changed(self, key: str, value: str):
         """Update UI when settings change externally"""
@@ -153,6 +160,8 @@ class SettingsView(QScrollArea):
                 self.provider_combo.set_current_index(0)
             elif value == "openai":
                 self.provider_combo.set_current_index(1)
+            elif value == "groq":
+                self.provider_combo.set_current_index(2)
             self.update_ui_for_provider()
         elif key.startswith("provider_api_key_"):
             # Update API key field if it matches current provider

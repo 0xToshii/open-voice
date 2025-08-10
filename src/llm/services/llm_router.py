@@ -2,6 +2,7 @@ from typing import Dict, Any
 from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.interfaces.llm_client import ILLMClient
 from src.llm.clients.openai_client import OpenAILLMClient
+from src.llm.clients.groq_client import GroqLLMClient
 from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.interfaces.settings import ISettingsManager
 
@@ -90,6 +91,8 @@ class LLMRouter(ILLMRouter):
         """Create LLM client for the specified provider"""
         if provider == "openai":
             return OpenAILLMClient(self.settings_manager)
+        elif provider == "groq":
+            return GroqLLMClient(self.settings_manager)
         elif provider == "local":
             return PassthroughLLMClient()
         else:

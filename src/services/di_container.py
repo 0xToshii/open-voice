@@ -9,6 +9,7 @@ from src.interfaces.audio_recorder import IAudioRecorder
 from src.services.speech_registry import SpeechEngineRegistry
 from src.engines.speech_factories import (
     OpenAIWhisperFactory,
+    GroqWhisperFactory,
     LocalWhisperFactory,
 )
 from src.services.recording_service import VoiceRecordingService
@@ -22,6 +23,7 @@ from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
 from src.llm.interfaces.llm_client import ILLMClient
 from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.clients.openai_client import OpenAILLMClient
+from src.llm.clients.groq_client import GroqLLMClient
 from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.llm.services.llm_router import LLMRouter
 from src.llm.services.llm_text_processor import (
@@ -94,6 +96,9 @@ class DIContainer:
                 if selected_provider == "openai":
                     self._llm_client = OpenAILLMClient(settings)
                     print(f"Using OpenAI LLM client")
+                elif selected_provider == "groq":
+                    self._llm_client = GroqLLMClient(settings)
+                    print(f"Using Groq LLM client")
                 elif selected_provider == "local":
                     self._llm_client = PassthroughLLMClient()
                     print("Using passthrough LLM client (local provider)")
@@ -191,6 +196,9 @@ class DIContainer:
         registry.register_engine(
             name="openai", factory=OpenAIWhisperFactory(), priority=100
         )
+
+        # Groq Whisper as high priority alternative
+        registry.register_engine(name="groq", factory=GroqWhisperFactory(), priority=90)
 
         # Local Whisper as additional fallback (no internet required)
         registry.register_engine(

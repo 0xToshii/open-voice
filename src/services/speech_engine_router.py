@@ -8,7 +8,6 @@ from src.interfaces.speech import ISpeechEngine
 class SpeechEngineRouter(ISpeechEngineRouter):
     """
     Provider-based speech engine router that uses the selected provider without fallbacks.
-    Maintains dependency inversion by depending only on abstractions.
     """
 
     def __init__(
@@ -96,6 +95,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         """Get engine ID for the specified provider"""
         provider_engine_map = {
             "openai": "openai",
+            "groq": "groq",
             "local": "local_whisper",
         }
 
@@ -109,6 +109,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         """Get human-readable engine name for the specified provider"""
         provider_name_map = {
             "openai": "OpenAI Whisper",
+            "groq": "Groq Whisper",
             "local": "Local Whisper",
         }
         return provider_name_map.get(provider, "Unknown")

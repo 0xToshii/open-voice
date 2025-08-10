@@ -24,6 +24,7 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
             "selected_provider": "local",  # Default to local provider
             "provider_api_keys": {
                 "openai": "",
+                "groq": "",
             },
             "custom_instructions": "",
         }
@@ -34,7 +35,7 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
 
     def set_selected_provider(self, provider: str) -> None:
         """Set selected provider name"""
-        valid_providers = ["openai", "local"]
+        valid_providers = ["openai", "groq", "local"]
         if provider not in valid_providers:
             raise ValueError(
                 f"Invalid provider '{provider}'. Must be one of: {valid_providers}"

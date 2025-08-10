@@ -3,6 +3,7 @@ from src.interfaces.speech_factory import ISpeechEngineFactory
 from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
 from src.engines.openai_speech import OpenAIWhisperEngine
+from src.engines.groq_speech import GroqWhisperEngine
 from src.engines.local_whisper_speech import LocalWhisperEngine
 
 
@@ -28,6 +29,33 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
         """Check if OpenAI Whisper is available"""
         try:
             api_key = settings.get_provider_api_key("openai")
+            return bool(api_key and api_key.strip())
+        except Exception:
+            return False
+
+
+class GroqWhisperFactory(ISpeechEngineFactory):
+    """Factory for creating Groq Whisper engines"""
+
+    def create_engine(self, settings: ISettingsManager) -> ISpeechEngine:
+        """Create Groq Whisper engine instance"""
+        return GroqWhisperEngine(settings)
+
+    def get_engine_info(self) -> Dict[str, Any]:
+        """Get information about Groq Whisper"""
+        return {
+            "name": "Groq Whisper",
+            "id": "groq",
+            "provider": "Groq",
+            "requires_internet": True,
+            "requires_api_key": True,
+            "model": "whisper-large-v3",
+        }
+
+    def is_available(self, settings: ISettingsManager) -> bool:
+        """Check if Groq Whisper is available"""
+        try:
+            api_key = settings.get_provider_api_key("groq")
             return bool(api_key and api_key.strip())
         except Exception:
             return False
