@@ -2,22 +2,22 @@ from typing import Dict, Any
 from src.interfaces.speech_factory import ISpeechEngineFactory
 from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
-from src.engines.openai_speech import OpenAIWhisperEngine
-from src.engines.groq_speech import GroqWhisperEngine
+from src.engines.openai_speech import OpenAISpeechEngine
+from src.engines.groq_speech import GroqSpeechEngine
 from src.engines.local_whisper_speech import LocalWhisperEngine
 
 
-class OpenAIWhisperFactory(ISpeechEngineFactory):
-    """Factory for creating OpenAI Whisper engines"""
+class OpenAISpeechFactory(ISpeechEngineFactory):
+    """Factory for creating OpenAI speech engines"""
 
     def create_engine(self, settings: ISettingsManager) -> ISpeechEngine:
-        """Create OpenAI Whisper engine instance"""
-        return OpenAIWhisperEngine(settings)
+        """Create OpenAI speech engine instance"""
+        return OpenAISpeechEngine(settings)
 
     def get_engine_info(self) -> Dict[str, Any]:
-        """Get information about OpenAI Whisper"""
+        """Get information about OpenAI speech"""
         return {
-            "name": "OpenAI Whisper",
+            "name": "OpenAI Speech",
             "id": "openai",
             "provider": "OpenAI",
             "requires_internet": True,
@@ -26,7 +26,7 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
         }
 
     def is_available(self, settings: ISettingsManager) -> bool:
-        """Check if OpenAI Whisper is available"""
+        """Check if OpenAI speech is available"""
         try:
             api_key = settings.get_provider_api_key("openai")
             return bool(api_key and api_key.strip())
@@ -34,17 +34,17 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
             return False
 
 
-class GroqWhisperFactory(ISpeechEngineFactory):
-    """Factory for creating Groq Whisper engines"""
+class GroqSpeechFactory(ISpeechEngineFactory):
+    """Factory for creating Groq speech engines"""
 
     def create_engine(self, settings: ISettingsManager) -> ISpeechEngine:
-        """Create Groq Whisper engine instance"""
-        return GroqWhisperEngine(settings)
+        """Create Groq speech engine instance"""
+        return GroqSpeechEngine(settings)
 
     def get_engine_info(self) -> Dict[str, Any]:
-        """Get information about Groq Whisper"""
+        """Get information about Groq speech"""
         return {
-            "name": "Groq Whisper",
+            "name": "Groq Speech",
             "id": "groq",
             "provider": "Groq",
             "requires_internet": True,
@@ -53,7 +53,7 @@ class GroqWhisperFactory(ISpeechEngineFactory):
         }
 
     def is_available(self, settings: ISettingsManager) -> bool:
-        """Check if Groq Whisper is available"""
+        """Check if Groq speech is available"""
         try:
             api_key = settings.get_provider_api_key("groq")
             return bool(api_key and api_key.strip())

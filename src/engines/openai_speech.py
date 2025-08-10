@@ -8,14 +8,14 @@ from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
 
 
-class OpenAIWhisperEngine(ISpeechEngine):
-    """OpenAI Whisper speech recognition engine"""
+class OpenAISpeechEngine(ISpeechEngine):
+    """OpenAI speech recognition engine"""
 
     def __init__(self, settings_manager: ISettingsManager):
         self.settings_manager = settings_manager
         self.client = None
         self._initialize_client()
-        print("OpenAI Whisper engine initialized")
+        print("OpenAI speech engine initialized")
 
     def _initialize_client(self):
         """Initialize OpenAI client with API key"""
@@ -135,9 +135,9 @@ class OpenAIWhisperEngine(ISpeechEngine):
         self._initialize_client()
 
     def get_model_info(self) -> dict:
-        """Get information about the Whisper model"""
+        """Get information about the speech model"""
         return {
-            "name": "OpenAI Whisper",
+            "name": "OpenAI Speech",
             "model": "whisper-1",
             "provider": "OpenAI",
             "requires_internet": True,

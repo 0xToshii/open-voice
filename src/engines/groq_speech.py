@@ -8,14 +8,14 @@ from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
 
 
-class GroqWhisperEngine(ISpeechEngine):
-    """Groq Whisper speech recognition engine"""
+class GroqSpeechEngine(ISpeechEngine):
+    """Groq speech recognition engine"""
 
     def __init__(self, settings_manager: ISettingsManager):
         self.settings_manager = settings_manager
         self.client = None
         self._initialize_client()
-        print("Groq Whisper engine initialized")
+        print("Groq speech engine initialized")
 
     def _initialize_client(self):
         """Initialize Groq client with API key"""
@@ -137,9 +137,9 @@ class GroqWhisperEngine(ISpeechEngine):
         self._initialize_client()
 
     def get_model_info(self) -> dict:
-        """Get information about the Whisper model"""
+        """Get information about the speech model"""
         return {
-            "name": "Groq Whisper",
+            "name": "Groq Speech",
             "model": "whisper-large-v3",
             "provider": "Groq",
             "requires_internet": True,

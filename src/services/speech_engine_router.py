@@ -108,8 +108,8 @@ class SpeechEngineRouter(ISpeechEngineRouter):
     def _get_engine_name_for_provider(self, provider: str) -> str:
         """Get human-readable engine name for the specified provider"""
         provider_name_map = {
-            "openai": "OpenAI Whisper",
-            "groq": "Groq Whisper",
+            "openai": "OpenAI Speech",
+            "groq": "Groq Speech",
             "local": "Local Whisper",
         }
         return provider_name_map.get(provider, "Unknown")

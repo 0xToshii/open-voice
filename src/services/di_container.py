@@ -8,8 +8,8 @@ from src.interfaces.text_processing import ITextProcessor
 from src.interfaces.audio_recorder import IAudioRecorder
 from src.services.speech_registry import SpeechEngineRegistry
 from src.engines.speech_factories import (
-    OpenAIWhisperFactory,
-    GroqWhisperFactory,
+    OpenAISpeechFactory,
+    GroqSpeechFactory,
     LocalWhisperFactory,
 )
 from src.services.recording_service import VoiceRecordingService
@@ -192,13 +192,13 @@ class DIContainer:
         registry = self._speech_registry
 
         # Register engines with priorities (higher = preferred)
-        # OpenAI Whisper has highest priority when available
+        # OpenAI Speech has highest priority when available
         registry.register_engine(
-            name="openai", factory=OpenAIWhisperFactory(), priority=100
+            name="openai", factory=OpenAISpeechFactory(), priority=100
         )
 
-        # Groq Whisper as high priority alternative
-        registry.register_engine(name="groq", factory=GroqWhisperFactory(), priority=90)
+        # Groq Speech as high priority alternative
+        registry.register_engine(name="groq", factory=GroqSpeechFactory(), priority=90)
 
         # Local Whisper as additional fallback (no internet required)
         registry.register_engine(
