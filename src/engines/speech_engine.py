@@ -19,7 +19,7 @@ class SpeechRecognitionEngine(ISpeechEngine):
         self.recognizer.pause_threshold = 0.8
         self.recognizer.phrase_threshold = 0.3
 
-        print(f"🤖 Speech recognition engine initialized: {engine_type}")
+        print(f"Speech recognition engine initialized: {engine_type}")
 
     def transcribe(self, audio_data: bytes) -> str:
         """Convert audio data to text using speech recognition"""
@@ -27,7 +27,7 @@ class SpeechRecognitionEngine(ISpeechEngine):
             if not audio_data:
                 return "No audio data received"
 
-            print(f"🔄 Processing {len(audio_data)} bytes of audio...")
+            print(f"Processing {len(audio_data)} bytes of audio...")
 
             # Convert raw audio bytes to AudioData format
             audio_file = self._bytes_to_audio_data(audio_data)
@@ -39,13 +39,13 @@ class SpeechRecognitionEngine(ISpeechEngine):
             text = self._recognize_audio(audio_file)
 
             if text:
-                print(f"✅ Speech recognized: '{text}'")
+                print(f"Speech recognized: '{text}'")
                 return text
             else:
                 return "Could not understand audio"
 
         except Exception as e:
-            print(f"❌ Speech recognition error: {e}")
+            print(f"Speech recognition error: {e}")
             return f"Recognition error: {str(e)}"
 
     def is_available(self) -> bool:
@@ -55,7 +55,7 @@ class SpeechRecognitionEngine(ISpeechEngine):
             test_recognizer = sr.Recognizer()
             return True
         except Exception as e:
-            print(f"❌ Speech recognition not available: {e}")
+            print(f"Speech recognition not available: {e}")
             return False
 
     def _bytes_to_audio_data(self, audio_bytes: bytes) -> Optional[sr.AudioData]:
@@ -83,7 +83,7 @@ class SpeechRecognitionEngine(ISpeechEngine):
                 return audio_data
 
         except Exception as e:
-            print(f"❌ Audio conversion error: {e}")
+            print(f"Audio conversion error: {e}")
             return None
 
     def _recognize_audio(self, audio_data: sr.AudioData) -> Optional[str]:
@@ -105,23 +105,23 @@ class SpeechRecognitionEngine(ISpeechEngine):
                 return text
 
             else:
-                print(f"❌ Unknown engine type: {self.engine_type}")
+                print(f"Unknown engine type: {self.engine_type}")
                 return None
 
         except sr.UnknownValueError:
-            print("⚠️ Speech was unclear or not detected")
+            print("Speech was unclear or not detected")
             return "Speech not clear"
         except sr.RequestError as e:
-            print(f"❌ Speech service error: {e}")
+            print(f"Speech service error: {e}")
             return f"Service error: {e}"
         except Exception as e:
-            print(f"❌ Recognition error: {e}")
+            print(f"Recognition error: {e}")
             return f"Error: {e}"
 
     def set_engine(self, engine_type: str) -> None:
         """Change the speech recognition engine"""
         self.engine_type = engine_type
-        print(f"🔄 Speech engine changed to: {engine_type}")
+        print(f"Speech engine changed to: {engine_type}")
 
     def adjust_for_ambient_noise(self, duration: float = 1.0) -> None:
         """Adjust recognizer sensitivity based on ambient noise"""
@@ -131,9 +131,9 @@ class SpeechRecognitionEngine(ISpeechEngine):
             # For now, just adjust energy threshold
             self.recognizer.energy_threshold = 300
             self.recognizer.dynamic_energy_threshold = True
-            print("✅ Ambient noise adjustment completed")
+            print("Ambient noise adjustment completed")
         except Exception as e:
-            print(f"❌ Ambient noise adjustment failed: {e}")
+            print(f"Ambient noise adjustment failed: {e}")
 
 
 class OfflineSpeechEngine(ISpeechEngine):
@@ -141,7 +141,7 @@ class OfflineSpeechEngine(ISpeechEngine):
 
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        print("🤖 Offline speech recognition engine initialized")
+        print("Offline speech recognition engine initialized")
 
     def transcribe(self, audio_data: bytes) -> str:
         """Convert audio using offline recognition"""
@@ -159,7 +159,7 @@ class OfflineSpeechEngine(ISpeechEngine):
             try:
                 text = self.recognizer.recognize_sphinx(audio_file)
                 if text:
-                    print(f"✅ Offline speech recognized: '{text}'")
+                    print(f"Offline speech recognized: '{text}'")
                     return text
                 else:
                     return "Could not understand audio"
@@ -169,7 +169,7 @@ class OfflineSpeechEngine(ISpeechEngine):
                 return f"Offline recognition error: {e}"
 
         except Exception as e:
-            print(f"❌ Offline speech recognition error: {e}")
+            print(f"Offline speech recognition error: {e}")
             return f"Recognition error: {str(e)}"
 
     def is_available(self) -> bool:
@@ -183,7 +183,7 @@ class OfflineSpeechEngine(ISpeechEngine):
             return True
         except:
             print(
-                "⚠️ Offline speech recognition not available (pocketsphinx not installed)"
+                "Offline speech recognition not available (pocketsphinx not installed)"
             )
             return False
 
@@ -207,5 +207,5 @@ class OfflineSpeechEngine(ISpeechEngine):
                 return audio_data
 
         except Exception as e:
-            print(f"❌ Offline audio conversion error: {e}")
+            print(f"Offline audio conversion error: {e}")
             return None

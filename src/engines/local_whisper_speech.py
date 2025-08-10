@@ -139,8 +139,6 @@ class LocalWhisperEngine(ISpeechEngine):
             "name": "Local Whisper",
             "model": self.model_size,
             "provider": "Local",
-            "accuracy": "High",
-            "language_support": "Multilingual",
             "requires_internet": False,
             "requires_api_key": False,
         }

@@ -140,8 +140,6 @@ class OpenAIWhisperEngine(ISpeechEngine):
             "name": "OpenAI Whisper",
             "model": "whisper-1",
             "provider": "OpenAI",
-            "accuracy": "High",
-            "language_support": "Multilingual",
             "requires_internet": True,
             "requires_api_key": True,
         }

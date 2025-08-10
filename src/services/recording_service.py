@@ -189,7 +189,7 @@ class VoiceRecordingService(QObject):
         """Insert text with focus management if supported"""
         try:
             if not text.strip():
-                print("⚠️ Empty text, skipping insertion")
+                print("Empty text, skipping insertion")
                 self.data_store.mark_insertion_status(transcript_id, True)
                 return
 
