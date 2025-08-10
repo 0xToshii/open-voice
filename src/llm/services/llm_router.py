@@ -1,14 +1,14 @@
-from typing import Dict, Any, List, Tuple, Callable
+from typing import Dict, Any
 from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.interfaces.llm_client import ILLMClient
-from src.llm.clients.cerebras_client import CerebrasLLMClient
+from src.llm.clients.openai_client import OpenAILLMClient
 from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.interfaces.settings import ISettingsManager
 
 
 class LLMRouter(ILLMRouter):
     """
-    LLM router that handles dynamic client selection and fallback logic.
+    Provider-based LLM router that uses the selected provider without fallbacks.
     Maintains dependency inversion by depending only on abstractions.
     """
 
@@ -24,7 +24,7 @@ class LLMRouter(ILLMRouter):
         }
 
     def process_with_best_llm(self, system_prompt: str, user_input: str) -> str:
-        """Process text using priority-based LLM selection with fallback"""
+        """Process text using selected provider only (no fallbacks)"""
         if not user_input or not user_input.strip():
             self._last_llm_info = {
                 "provider": "None",
@@ -34,115 +34,92 @@ class LLMRouter(ILLMRouter):
             }
             return user_input
 
-        # Get LLMs to try in priority order
-        llms_to_try = self._get_llms_in_priority_order()
+        # Get selected provider
+        selected_provider = self.settings_manager.get_selected_provider()
 
-        if not llms_to_try:
-            self._last_llm_info = {
-                "provider": "None",
-                "model": "None",
-                "success": False,
-                "error": "No LLM clients available",
-            }
-            return user_input
+        try:
+            # Create LLM client for selected provider
+            llm_client = self._create_llm_for_provider(selected_provider)
 
-        # Attempt each LLM in order
-        for llm_name, llm_creator in llms_to_try:
-            try:
-                print(f"Attempting: {llm_name}")
+            if not llm_client:
+                raise Exception(
+                    f"No LLM client available for provider: {selected_provider}"
+                )
 
-                # Create LLM client on demand (fresh instance each time)
-                llm_client = llm_creator()
-
-                # Check if client is available (has valid key)
-                if not llm_client.is_available():
-                    print(f"{llm_name} not available (no valid key)")
-                    continue
-
-                # Attempt processing
-                result = llm_client.generate(system_prompt, user_input)
-
-                # Check if result is valid
-                if result and result.strip():
-                    print(f"Success with: {llm_name}")
-
-                    # Record successful LLM use
-                    model_info = llm_client.get_model_info()
-                    self._last_llm_info = {
-                        "provider": model_info.get("provider", llm_name),
-                        "model": model_info.get("model", "unknown"),
-                        "success": True,
-                        "error": None,
-                    }
-
-                    return result.strip()
+            # Check if client is available
+            if not llm_client.is_available():
+                if selected_provider == "local":
+                    # Local provider should always be available (passthrough)
+                    pass
                 else:
-                    print(f"{llm_name} returned empty result")
+                    raise Exception(
+                        f"{selected_provider} provider not available - check API key"
+                    )
 
-            except Exception as e:
-                print(f"{llm_name} failed: {e}")
-                continue
+            print(f"Using {selected_provider} LLM provider")
 
-        # All LLMs failed
-        print("All LLM clients failed")
-        self._last_llm_info = {
-            "provider": "All providers",
-            "model": "Multiple",
-            "success": False,
-            "error": "All LLM clients failed",
-        }
-        return user_input  # Return original text as fallback
+            # Process with selected provider
+            result = llm_client.generate(system_prompt, user_input)
 
-    def _get_llms_in_priority_order(self) -> List[Tuple[str, Callable]]:
-        """Get list of LLMs to try in priority order based on current settings"""
-        llms_to_try = []
+            # Record successful LLM use
+            model_info = llm_client.get_model_info()
+            self._last_llm_info = {
+                "provider": model_info.get("provider", selected_provider),
+                "model": model_info.get("model", "unknown"),
+                "success": True,
+                "error": None,
+            }
 
-        # 1. Try Cerebras first if API key is available
-        cerebras_key = self.settings_manager.get_cerebras_key()
-        if cerebras_key and cerebras_key.strip():
-            llms_to_try.append(
-                ("Cerebras", lambda: CerebrasLLMClient(self.settings_manager))
-            )
+            return result.strip() if result else user_input
 
-        # 2. Always add Passthrough as final fallback
-        llms_to_try.append(("Passthrough LLM", lambda: PassthroughLLMClient()))
+        except Exception as e:
+            print(f"LLM processing failed with {selected_provider} provider: {e}")
 
-        return llms_to_try
+            # Record failure
+            self._last_llm_info = {
+                "provider": selected_provider,
+                "model": "unknown",
+                "success": False,
+                "error": str(e),
+            }
+
+            # No fallback - raise exception to inform user
+            raise Exception(f"LLM processing failed: {e}")
+
+    def _create_llm_for_provider(self, provider: str) -> ILLMClient:
+        """Create LLM client for the specified provider"""
+        if provider == "openai":
+            return OpenAILLMClient(self.settings_manager)
+        elif provider == "local":
+            return PassthroughLLMClient()
+        else:
+            raise Exception(f"Unknown provider: {provider}")
 
     def get_last_used_llm_info(self) -> Dict[str, Any]:
         """Get information about the LLM used in the last processing call"""
         return self._last_llm_info.copy()
 
-    def get_available_llms(self) -> List[str]:
-        """Get list of currently available LLM providers"""
-        available_llms = []
-
+    def get_available_llms(self) -> list:
+        """Get list of currently available LLM providers for selected provider"""
         try:
-            # Check Cerebras availability
-            cerebras_key = self.settings_manager.get_cerebras_key()
-            if cerebras_key and cerebras_key.strip():
-                # Create client to test if it's truly available
-                try:
-                    cerebras_client = CerebrasLLMClient(self.settings_manager)
-                    if cerebras_client.is_available():
-                        available_llms.append("Cerebras")
-                except Exception:
-                    pass  # Cerebras not available
+            selected_provider = self.settings_manager.get_selected_provider()
+            provider_name = selected_provider.capitalize()
 
-            # Passthrough is always available
-            available_llms.append("Passthrough LLM")
+            # Check if the LLM client for this provider is actually available
+            llm_client = self._create_llm_for_provider(selected_provider)
 
-        except Exception as e:
-            print(f"Error checking available LLMs: {e}")
-            # Fallback to Passthrough only
-            available_llms = ["Passthrough LLM"]
-
-        return available_llms
+            if llm_client.is_available():
+                return [provider_name]
+            else:
+                return []
+        except Exception:
+            return []
 
     def is_available(self) -> bool:
-        """Check if at least one LLM is available"""
+        """Check if selected provider is available"""
         try:
-            available_llms = self.get_available_llms()
-            return len(available_llms) > 0
+            selected_provider = self.settings_manager.get_selected_provider()
+            llm_client = self._create_llm_for_provider(selected_provider)
+            return llm_client.is_available()
         except Exception:
-            return True  # Passthrough is always available as fallback
+            return False

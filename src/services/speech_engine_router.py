@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any
 from src.interfaces.speech_router import ISpeechEngineRouter
 from src.interfaces.speech_factory import ISpeechEngineRegistry
 from src.interfaces.settings import ISettingsManager
@@ -7,7 +7,7 @@ from src.interfaces.speech import ISpeechEngine
 
 class SpeechEngineRouter(ISpeechEngineRouter):
     """
-    Speech engine router that handles dynamic engine selection and fallback logic.
+    Provider-based speech engine router that uses the selected provider without fallbacks.
     Maintains dependency inversion by depending only on abstractions.
     """
 
@@ -16,9 +16,6 @@ class SpeechEngineRouter(ISpeechEngineRouter):
     ):
         self.speech_registry = speech_registry
         self.settings_manager = settings_manager
-
-        # Engine caching for performance
-        self._engine_cache: Dict[str, ISpeechEngine] = {}
 
         # Track last used engine for reporting
         self._last_engine_info = {
@@ -29,7 +26,7 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         }
 
     def transcribe_with_fallback(self, audio_data: bytes) -> str:
-        """Transcribe audio using priority-based engine selection with fallback"""
+        """Transcribe audio using selected provider only (no fallbacks)"""
         if not audio_data:
             self._last_engine_info = {
                 "name": "None",
@@ -39,137 +36,114 @@ class SpeechEngineRouter(ISpeechEngineRouter):
             }
             return "No audio data received"
 
-        # Get engines to try in priority order
-        engines_to_try = self._get_engines_in_priority_order()
-
-        if not engines_to_try:
-            self._last_engine_info = {
-                "name": "None",
-                "provider": "None",
-                "success": False,
-                "error": "No speech engines available",
-            }
-            return "No speech engines available"
-
-        # Attempt each engine in order
-        for engine_name, engine_id in engines_to_try:
-            try:
-                print(f"Attempting: {engine_name}")
-
-                # Use cached engine or create if not exists
-                engine = self._get_cached_engine(engine_id)
-
-                # Attempt transcription
-                result = engine.transcribe(audio_data)
-
-                # Check if result is valid
-                if result and result.strip() and not self._is_error_result(result):
-                    print(f"Success with: {engine_name}")
-
-                    # Record successful engine use
-                    self._last_engine_info = {
-                        "name": engine_name,
-                        "provider": self._get_engine_provider(engine_name),
-                        "success": True,
-                        "error": None,
-                    }
-
-                    return result.strip()
-                else:
-                    print(f"{engine_name} returned empty/invalid result: '{result}'")
-
-            except Exception as e:
-                print(f"{engine_name} failed: {e}")
-                continue
-
-        # All engines failed
-        print("All speech engines failed")
-        self._last_engine_info = {
-            "name": "All engines",
-            "provider": "Multiple",
-            "success": False,
-            "error": "All speech engines failed",
-        }
-        return "Speech recognition failed - all engines unavailable"
-
-    def _get_engines_in_priority_order(self) -> List[Tuple[str, str]]:
-        """Get list of engines to try in priority order from registry"""
-        engines_to_try = []
+        # Get selected provider
+        selected_provider = self.settings_manager.get_selected_provider()
 
         try:
-            # Get available engines from registry (already in priority order)
-            available_engines = self.speech_registry.get_available_engines(
-                self.settings_manager
-            )
+            # Get engine ID for selected provider
+            engine_id = self._get_engine_id_for_provider(selected_provider)
 
-            for engine_info in available_engines:
-                if engine_info.get("available", False):
-                    engine_name = engine_info.get("name", "Unknown")
-                    engine_id = engine_info.get("id", "unknown")
+            if not engine_id:
+                raise Exception(
+                    f"No speech engine available for provider: {selected_provider}"
+                )
 
-                    engines_to_try.append((engine_name, engine_id))
-        except Exception as e:
-            print(f"Error getting engines from registry: {e}")
+            print(f"Using {selected_provider} speech provider")
 
-        return engines_to_try
-
-    def _get_cached_engine(self, engine_id: str) -> ISpeechEngine:
-        """Get cached engine instance or create new one if not cached"""
-        if engine_id not in self._engine_cache:
-            print(f"Creating and caching engine: {engine_id}")
+            # Create engine for selected provider
             engine = self.speech_registry.create_engine_by_name(
                 engine_id, self.settings_manager
             )
-            self._engine_cache[engine_id] = engine
-        else:
-            print(f"Using cached engine: {engine_id}")
 
-        return self._engine_cache[engine_id]
+            # Check if engine is available
+            if not engine.is_available():
+                if selected_provider == "local":
+                    # Local provider should always be available
+                    pass
+                else:
+                    raise Exception(
+                        f"{selected_provider} speech engine not available - check API key"
+                    )
 
-    def _is_error_result(self, result: str) -> bool:
-        """Check if the result indicates an error condition"""
-        if not result:
-            return True
+            # Transcribe with selected provider
+            result = engine.transcribe(audio_data)
 
-        error_indicators = [
-            "error:",
-            "failed",
-            "recognition error",
-            "service error",
-            "could not understand",
-            "speech not clear",
-        ]
+            # Record successful engine use
+            self._last_engine_info = {
+                "name": self._get_engine_name_for_provider(selected_provider),
+                "provider": selected_provider,
+                "success": True,
+                "error": None,
+            }
 
-        result_lower = result.lower()
-        return any(indicator in result_lower for indicator in error_indicators)
+            return result.strip() if result else "Could not understand audio"
 
-    def _get_engine_provider(self, engine_name: str) -> str:
-        """Get the provider name for an engine"""
-        provider_map = {
-            "OpenAI Whisper": "OpenAI",
-            "Local Whisper": "Local",
+        except Exception as e:
+            print(f"Speech transcription failed with {selected_provider} provider: {e}")
+
+            # Record failure
+            self._last_engine_info = {
+                "name": self._get_engine_name_for_provider(selected_provider),
+                "provider": selected_provider,
+                "success": False,
+                "error": str(e),
+            }
+
+            # No fallback - raise exception to inform user
+            raise Exception(f"Speech transcription failed: {e}")
+
+    def _get_engine_id_for_provider(self, provider: str) -> str:
+        """Get engine ID for the specified provider"""
+        provider_engine_map = {
+            "openai": "openai",
+            "local": "local_whisper",
         }
-        return provider_map.get(engine_name, "Unknown")
+
+        engine_id = provider_engine_map.get(provider)
+        if not engine_id:
+            raise Exception(f"Unknown provider: {provider}")
+
+        return engine_id
+
+    def _get_engine_name_for_provider(self, provider: str) -> str:
+        """Get human-readable engine name for the specified provider"""
+        provider_name_map = {
+            "openai": "OpenAI Whisper",
+            "local": "Local Whisper",
+        }
+        return provider_name_map.get(provider, "Unknown")
 
     def get_last_used_engine_info(self) -> Dict[str, Any]:
         """Get information about the engine used in the last transcription"""
         return self._last_engine_info.copy()
 
-    def get_available_engines(self) -> List[str]:
-        """Get list of currently available speech engines"""
+    def get_available_engines(self) -> list:
+        """Get list of currently available speech engines for selected provider"""
         try:
-            available_engines = self.speech_registry.get_available_engines(
-                self.settings_manager
+            selected_provider = self.settings_manager.get_selected_provider()
+            engine_name = self._get_engine_name_for_provider(selected_provider)
+
+            # Check if the engine for this provider is actually available
+            engine_id = self._get_engine_id_for_provider(selected_provider)
+            engine = self.speech_registry.create_engine_by_name(
+                engine_id, self.settings_manager
             )
-            return [engine.get("name", "Unknown") for engine in available_engines]
-        except Exception as e:
-            print(f"Error getting available engines: {e}")
+
+            if engine.is_available():
+                return [engine_name]
+            else:
+                return []
+        except Exception:
             return []
 
     def is_available(self) -> bool:
-        """Check if at least one speech engine is available"""
+        """Check if selected provider is available"""
         try:
-            available_engines = self.get_available_engines()
-            return len(available_engines) > 0
+            selected_provider = self.settings_manager.get_selected_provider()
+            engine_id = self._get_engine_id_for_provider(selected_provider)
+            engine = self.speech_registry.create_engine_by_name(
+                engine_id, self.settings_manager
+            )
+            return engine.is_available()
         except Exception:
             return False

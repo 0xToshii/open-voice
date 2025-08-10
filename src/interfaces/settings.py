@@ -1,27 +1,38 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class ISettingsManager(ABC):
     """Abstract interface for settings management"""
 
     @abstractmethod
-    def get_cerebras_key(self) -> str:
-        """Get Cerebras API key"""
+    def get_selected_provider(self) -> str:
+        """Get selected provider name (e.g., 'openai', 'local')"""
         pass
 
     @abstractmethod
-    def set_cerebras_key(self, key: str) -> None:
-        """Set Cerebras API key"""
+    def set_selected_provider(self, provider: str) -> None:
+        """Set selected provider name"""
         pass
 
     @abstractmethod
-    def get_openai_key(self) -> str:
-        """Get OpenAI API key"""
+    def get_provider_api_key(self, provider: str) -> Optional[str]:
+        """Get API key for specified provider"""
         pass
 
     @abstractmethod
-    def set_openai_key(self, key: str) -> None:
-        """Set OpenAI API key"""
+    def set_provider_api_key(self, provider: str, api_key: str) -> None:
+        """Set API key for specified provider"""
+        pass
+
+    @abstractmethod
+    def get_custom_instructions(self) -> str:
+        """Get custom instructions"""
+        pass
+
+    @abstractmethod
+    def set_custom_instructions(self, instructions: str) -> None:
+        """Set custom instructions"""
         pass
 
     @abstractmethod

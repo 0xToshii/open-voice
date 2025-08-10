@@ -20,7 +20,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
     def _initialize_client(self):
         """Initialize OpenAI client with API key"""
         try:
-            api_key = self.settings_manager.get_openai_key()
+            api_key = self.settings_manager.get_provider_api_key("openai")
             if api_key and api_key.strip():
                 self.client = OpenAI(api_key=api_key.strip())
                 print("OpenAI client initialized")
@@ -92,7 +92,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
     def is_available(self) -> bool:
         """Check if OpenAI Whisper is available"""
         try:
-            api_key = self.settings_manager.get_openai_key()
+            api_key = self.settings_manager.get_provider_api_key("openai")
             if not api_key or not api_key.strip():
                 return False
 
@@ -131,7 +131,7 @@ class OpenAIWhisperEngine(ISpeechEngine):
 
     def update_api_key(self, api_key: str):
         """Update the OpenAI API key"""
-        self.settings_manager.set_openai_key(api_key)
+        self.settings_manager.set_provider_api_key("openai", api_key)
         self._initialize_client()
 
     def get_model_info(self) -> dict:

@@ -27,7 +27,7 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
     def is_available(self, settings: ISettingsManager) -> bool:
         """Check if OpenAI Whisper is available"""
         try:
-            api_key = settings.get_openai_key()
+            api_key = settings.get_provider_api_key("openai")
             return bool(api_key and api_key.strip())
         except Exception:
             return False

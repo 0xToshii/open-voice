@@ -22,7 +22,7 @@ from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
 from src.llm.interfaces.llm_client import ILLMClient
 from src.llm.interfaces.prompt_provider import IPromptProvider
 from src.llm.interfaces.llm_router import ILLMRouter
-from src.llm.clients.cerebras_client import CerebrasLLMClient
+from src.llm.clients.openai_client import OpenAILLMClient
 from src.llm.clients.passthrough_client import PassthroughLLMClient
 from src.llm.services.prompt_manager import FilePromptProvider, MockPromptProvider
 from src.llm.services.llm_router import LLMRouter
@@ -85,23 +85,23 @@ class DIContainer:
         return self._data_store
 
     def get_llm_client(self) -> ILLMClient:
-        """Get LLM client (Cerebras or passthrough based on configuration)"""
+        """Get LLM client based on selected provider"""
         if self._llm_client is None:
             if self._use_mock_llm:
                 print("Using passthrough LLM client for testing")
                 self._llm_client = PassthroughLLMClient()
             else:
-                try:
-                    settings = self.get_settings_manager()
-                    self._llm_client = CerebrasLLMClient(settings)
-                    if self._llm_client.is_available():
-                        print("Using Cerebras LLM client")
-                    else:
-                        print("Cerebras not available, falling back to passthrough LLM")
-                        self._llm_client = PassthroughLLMClient()
-                except Exception as e:
-                    print(f"Falling back to passthrough LLM client: {e}")
+                settings = self.get_settings_manager()
+                selected_provider = settings.get_selected_provider()
+
+                if selected_provider == "openai":
+                    self._llm_client = OpenAILLMClient(settings)
+                    print(f"Using OpenAI LLM client")
+                elif selected_provider == "local":
                     self._llm_client = PassthroughLLMClient()
+                    print("Using passthrough LLM client (local provider)")
+                else:
+                    raise Exception(f"Unknown provider: {selected_provider}")
         return self._llm_client
 
     def get_prompt_provider(self) -> IPromptProvider:
@@ -111,66 +111,45 @@ class DIContainer:
                 print("Using mock prompt provider")
                 self._prompt_provider = MockPromptProvider()
             else:
-                try:
-                    self._prompt_provider = FilePromptProvider("prompts")
-                    print("Using file-based prompt provider")
-                except Exception as e:
-                    print(f"Falling back to mock prompt provider: {e}")
-                    self._prompt_provider = MockPromptProvider()
+                self._prompt_provider = FilePromptProvider("prompts")
+                print("Using file-based prompt provider")
         return self._prompt_provider
 
     def get_llm_router(self) -> ILLMRouter:
-        """Get LLM router with dynamic client selection"""
+        """Get LLM router with provider-based selection"""
         if self._llm_router is None:
             settings_manager = self.get_settings_manager()
             self._llm_router = LLMRouter(settings_manager=settings_manager)
-            print("Using LLM router with PassthroughLLMClient fallback")
+            print("Using provider-based LLM router")
 
         return self._llm_router
 
     def get_text_processor(self) -> ITextProcessor:
         """Get text processor with LLM router pipeline"""
         if self._text_processor is None:
-            try:
-                llm_router = self.get_llm_router()
-                prompt_provider = self.get_prompt_provider()
-                settings = self.get_settings_manager()
+            llm_router = self.get_llm_router()
+            prompt_provider = self.get_prompt_provider()
+            settings = self.get_settings_manager()
 
-                # Try to create LLM text processor with router
-                if llm_router.is_available():
-                    self._text_processor = LLMTextProcessor(
-                        llm_router=llm_router,
-                        prompt_provider=prompt_provider,
-                        settings_manager=settings,
-                    )
-                    print("Using LLM text processor with router")
-                else:
-                    # Fallback to passthrough
-                    self._text_processor = PassthroughTextProcessor()
-                    print("LLM router not available, using passthrough text processor")
-
-            except Exception as e:
-                print(f"Failed to create LLM text processor: {e}")
-                self._text_processor = PassthroughTextProcessor()
-                print("Using passthrough text processor as fallback")
+            self._text_processor = LLMTextProcessor(
+                llm_router=llm_router,
+                prompt_provider=prompt_provider,
+                settings_manager=settings,
+            )
+            print("Using LLM text processor with provider-based router")
 
         return self._text_processor
 
     def get_speech_router(self) -> ISpeechEngineRouter:
-        """Get speech engine router with dynamic engine selection"""
+        """Get speech engine router with provider-based selection"""
         if self._speech_router is None:
-            try:
-                speech_registry = self.get_speech_registry()
-                settings_manager = self.get_settings_manager()
+            speech_registry = self.get_speech_registry()
+            settings_manager = self.get_settings_manager()
 
-                self._speech_router = SpeechEngineRouter(
-                    speech_registry=speech_registry, settings_manager=settings_manager
-                )
-                print("Using real speech engine router")
-
-            except Exception as e:
-                print(f"Failed to create speech engine router: {e}")
-                raise RuntimeError(f"Speech engine router initialization failed: {e}")
+            self._speech_router = SpeechEngineRouter(
+                speech_registry=speech_registry, settings_manager=settings_manager
+            )
+            print("Using provider-based speech engine router")
 
         return self._speech_router
 
@@ -188,12 +167,8 @@ class DIContainer:
                 print("Using mock audio recorder")
                 self._audio_recorder = MockAudioRecorder()
             else:
-                try:
-                    self._audio_recorder = PyAudioRecorder()
-                    print("Using real audio recorder")
-                except Exception as e:
-                    print(f"Falling back to mock audio recorder: {e}")
-                    self._audio_recorder = MockAudioRecorder()
+                self._audio_recorder = PyAudioRecorder()
+                print("Using real audio recorder")
         return self._audio_recorder
 
     def get_hotkey_handler(self) -> IHotkeyHandler:
@@ -203,12 +178,8 @@ class DIContainer:
                 print("Using mock hotkey handler")
                 self._hotkey_handler = MockHotkeyHandler()
             else:
-                try:
-                    self._hotkey_handler = CmdOptionHandler()
-                    print("Using Cmd+Option hotkey handler")
-                except Exception as e:
-                    print(f"Falling back to mock hotkey handler: {e}")
-                    self._hotkey_handler = MockHotkeyHandler()
+                self._hotkey_handler = CmdOptionHandler()
+                print("Using Cmd+Option hotkey handler")
         return self._hotkey_handler
 
     def get_speech_engine(self) -> ISpeechEngine:
@@ -258,38 +229,23 @@ class DIContainer:
         """Initialize all performance-critical services at startup"""
         print("Initializing critical services...")
 
-        try:
-            # Core recording pipeline - must be instant when user hits hotkey
-            print("  - Audio recorder...")
-            self.get_audio_recorder()
+        # Core recording pipeline - must be instant when user hits hotkey
+        print("  - Audio recorder...")
+        self.get_audio_recorder()
 
-            print("  - Speech router...")
-            speech_router = self.get_speech_router()
+        print("  - Speech router...")
+        self.get_speech_router()
 
-            print("  - Pre-loading speech engines...")
-            # Eagerly load and cache all available speech engines
-            available_engines = speech_router._get_engines_in_priority_order()
-            for engine_name, engine_id in available_engines:
-                try:
-                    print(f"    - Loading {engine_name}...")
-                    speech_router._get_cached_engine(engine_id)
-                    print(f"    - {engine_name} loaded successfully")
-                except Exception as e:
-                    print(f"    - Failed to load {engine_name}: {e}")
-                    # Continue with other engines even if one fails
-                    continue
+        print("  - Speech registry...")
+        self.get_speech_registry()
 
-            print("  - Hotkey handler...")
-            self.get_hotkey_handler()
+        print("  - Hotkey handler...")
+        self.get_hotkey_handler()
 
-            print("  - Text processor...")
-            self.get_text_processor()
+        print("  - Text processor...")
+        self.get_text_processor()
 
-            print("Critical services initialized successfully")
-
-        except Exception as e:
-            print(f"Critical services initialization failed: {e}")
-            raise RuntimeError(f"Failed to initialize critical services: {e}")
+        print("Critical services initialized successfully")
 
     def reset(self):
         """Reset all singletons (useful for testing)"""
