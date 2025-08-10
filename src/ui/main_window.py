@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
     QApplication,
     QDialog,
 )
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QFont, QPalette
+from PySide6.QtCore import Qt, QTimer, Signal, QSize
+from PySide6.QtGui import QFont, QPalette, QIcon
 from src.interfaces.data_store import IDataStore, TranscriptEntry
 from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
@@ -49,12 +49,12 @@ class SidebarWidget(QWidget):
 
         layout.addSpacing(30)
 
-        # Menu items
+        # Menu items with SVG icons
         menu_items = [
-            ("⚙️", "Settings"),
-            ("📖", "Dictionary"),
-            ("📄", "Instructions"),
-            ("🕐", "History"),
+            ("assets/icons/gear.svg", "Settings"),
+            ("assets/icons/book.svg", "Dictionary"),
+            ("assets/icons/document.svg", "Instructions"),
+            ("assets/icons/clock.svg", "History"),
         ]
 
         for icon, text in menu_items:
@@ -65,17 +65,26 @@ class SidebarWidget(QWidget):
         self.setLayout(layout)
         self.setObjectName("sidebar")
 
-    def add_menu_item(self, layout: QVBoxLayout, icon: str, text: str):
+    def add_menu_item(self, layout: QVBoxLayout, icon_path: str, text: str):
         container = QWidget()
         container.setObjectName("menuItem")
 
         item_layout = QHBoxLayout()
         item_layout.setContentsMargins(15, 10, 15, 10)
 
-        icon_label = QLabel(icon)
-        text_label = QLabel(text)
+        # Create icon button with SVG
+        icon_button = QPushButton()
+        icon_button.setIcon(QIcon(icon_path))
+        icon_button.setIconSize(QSize(16, 16))
+        icon_button.setObjectName("menuIcon")
+        icon_button.setFixedSize(20, 20)
+        icon_button.setFlat(True)
+        icon_button.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        item_layout.addWidget(icon_label)
+        text_label = QLabel(text)
+        text_label.setObjectName("menuText")
+
+        item_layout.addWidget(icon_button)
         item_layout.addWidget(text_label)
         item_layout.addStretch()
 
@@ -125,27 +134,42 @@ class TranscriptBubble(QWidget):
         header_layout.addWidget(header_label)
         header_layout.addStretch()
 
+        # Create compact button group
+        button_group = QWidget()
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(2)  # Tight spacing between buttons
+
         # Action buttons - Play, Copy, Delete
-        self.play_btn = QPushButton("▶")
+        self.play_btn = QPushButton()
+        self.play_btn.setIcon(QIcon("assets/icons/play.svg"))
+        self.play_btn.setIconSize(QSize(16, 16))
         self.play_btn.setObjectName("actionButton")
         self.play_btn.setFixedSize(30, 30)
         self.play_btn.setToolTip("Play recording")
         self.play_btn.clicked.connect(self.on_play_clicked)
-        header_layout.addWidget(self.play_btn)
+        button_layout.addWidget(self.play_btn)
 
-        self.copy_btn = QPushButton("📋")
+        self.copy_btn = QPushButton()
+        self.copy_btn.setIcon(QIcon("assets/icons/copy.svg"))
+        self.copy_btn.setIconSize(QSize(16, 16))
         self.copy_btn.setObjectName("actionButton")
         self.copy_btn.setFixedSize(30, 30)
         self.copy_btn.setToolTip("Copy text to clipboard")
         self.copy_btn.clicked.connect(self.on_copy_clicked)
-        header_layout.addWidget(self.copy_btn)
+        button_layout.addWidget(self.copy_btn)
 
-        self.delete_btn = QPushButton("🗑️")
+        self.delete_btn = QPushButton()
+        self.delete_btn.setIcon(QIcon("assets/icons/delete.svg"))
+        self.delete_btn.setIconSize(QSize(16, 16))
         self.delete_btn.setObjectName("actionButton")
         self.delete_btn.setFixedSize(30, 30)
         self.delete_btn.setToolTip("Delete transcript")
         self.delete_btn.clicked.connect(self.on_delete_clicked)
-        header_layout.addWidget(self.delete_btn)
+        button_layout.addWidget(self.delete_btn)
+
+        button_group.setLayout(button_layout)
+        header_layout.addWidget(button_group)
 
         layout.addLayout(header_layout)
 
@@ -576,9 +600,16 @@ class MainWindow(QMainWindow):
             background-color: #f0f0f0;
         }
         
-        #menuItem QLabel {
+        #menuIcon {
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+        
+        #menuText {
             color: #333333;
             font-weight: 500;
+            margin-left: 0px;
         }
         
         #upgradeButton {
@@ -622,24 +653,21 @@ class MainWindow(QMainWindow):
         }
         
         #actionButton {
-            border: 1px solid #ddd;
-            background-color: #f8f8f8;
-            color: #333;
-            font-size: 14px;
-            padding: 5px;
-            border-radius: 4px;
-            font-weight: 500;
+            border: none;
+            background: transparent;
+            padding: 7px;
+            border-radius: 6px;
+            color: #666666;
         }
         
         #actionButton:hover {
-            background-color: #e8e8e8;
-            border-color: #ccc;
-            color: #000;
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #333333;
         }
         
         #actionButton:pressed {
-            background-color: #ddd;
-            border-color: #bbb;
+            background-color: rgba(0, 0, 0, 0.1);
+            color: #222222;
         }
         
         /* Empty State Styles */
