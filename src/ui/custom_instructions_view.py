@@ -38,7 +38,7 @@ class CustomInstructionsView(QScrollArea):
 
         # Description - tighter spacing with title
         description_label = QLabel(
-            'Provide style preferences or instructions. For example: "Use all lowercase words," or "Use bullet points when creating lists."'
+            'Provide style preferences or instructions. For example: "Use all lowercase words." or "Use bullet points when creating lists."'
         )
         description_label.setObjectName("customInstructionsDescription")
         description_label.setWordWrap(True)

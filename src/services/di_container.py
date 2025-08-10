@@ -20,11 +20,9 @@ from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
 
 # LLM Pipeline imports
 from src.llm.interfaces.llm_client import ILLMClient
-from src.llm.interfaces.prompt_provider import IPromptProvider
 from src.llm.interfaces.llm_router import ILLMRouter
 from src.llm.clients.openai_client import OpenAILLMClient
 from src.llm.clients.passthrough_client import PassthroughLLMClient
-from src.llm.services.prompt_manager import FilePromptProvider, MockPromptProvider
 from src.llm.services.llm_router import LLMRouter
 from src.llm.services.llm_text_processor import (
     LLMTextProcessor,
@@ -50,7 +48,6 @@ class DIContainer:
 
         # LLM Pipeline singletons
         self._llm_client: Optional[ILLMClient] = None
-        self._prompt_provider: Optional[IPromptProvider] = None
         self._llm_router: Optional[ILLMRouter] = None
 
         # Speech Router singleton
@@ -104,17 +101,6 @@ class DIContainer:
                     raise Exception(f"Unknown provider: {selected_provider}")
         return self._llm_client
 
-    def get_prompt_provider(self) -> IPromptProvider:
-        """Get prompt provider (file-based or mock based on configuration)"""
-        if self._prompt_provider is None:
-            if self._use_mock_llm:
-                print("Using mock prompt provider")
-                self._prompt_provider = MockPromptProvider()
-            else:
-                self._prompt_provider = FilePromptProvider("prompts")
-                print("Using file-based prompt provider")
-        return self._prompt_provider
-
     def get_llm_router(self) -> ILLMRouter:
         """Get LLM router with provider-based selection"""
         if self._llm_router is None:
@@ -128,15 +114,13 @@ class DIContainer:
         """Get text processor with LLM router pipeline"""
         if self._text_processor is None:
             llm_router = self.get_llm_router()
-            prompt_provider = self.get_prompt_provider()
             settings = self.get_settings_manager()
 
             self._text_processor = LLMTextProcessor(
                 llm_router=llm_router,
-                prompt_provider=prompt_provider,
                 settings_manager=settings,
             )
-            print("Using LLM text processor with provider-based router")
+            print("Using LLM text processor with simple prompt loader")
 
         return self._text_processor
 
@@ -256,7 +240,6 @@ class DIContainer:
         self._audio_recorder = None
         self._hotkey_handler = None
         self._llm_client = None
-        self._prompt_provider = None
         self._llm_router = None
         self._speech_router = None
         print("DI Container reset")

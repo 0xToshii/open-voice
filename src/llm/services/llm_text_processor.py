@@ -1,6 +1,6 @@
 from src.interfaces.text_processing import ITextProcessor
 from src.llm.interfaces.llm_router import ILLMRouter
-from src.llm.interfaces.prompt_provider import IPromptProvider
+from src.llm.services.prompt_loader import SimplePromptLoader
 from src.interfaces.settings import ISettingsManager
 
 
@@ -10,12 +10,12 @@ class LLMTextProcessor(ITextProcessor):
     def __init__(
         self,
         llm_router: ILLMRouter,
-        prompt_provider: IPromptProvider,
         settings_manager: ISettingsManager,
+        prompt_loader: SimplePromptLoader = None,
     ):
         self.llm_router = llm_router
-        self.prompt_provider = prompt_provider
         self.settings_manager = settings_manager
+        self.prompt_loader = prompt_loader or SimplePromptLoader()
 
     def process_text(self, text: str) -> str:
         """Process text through single LLM call with optional custom instructions"""
@@ -36,13 +36,9 @@ class LLMTextProcessor(ITextProcessor):
         try:
             # Load the base text rewriter prompt
             try:
-                base_prompt_config = self.prompt_provider.get_prompt_by_name(
-                    "TranscriptionRewrite"
-                )
-                base_prompt = base_prompt_config.content
-                print("Loaded base text rewriter prompt")
-            except KeyError:
-                print("TranscriptionRewrite prompt not found, returning original text")
+                base_prompt = self.prompt_loader.get_transcription_prompt()
+            except Exception as e:
+                print(f"Failed to load transcription prompt: {e}")
                 return original_text
 
             # Check for custom instructions and append if present
