@@ -9,7 +9,6 @@ from src.interfaces.audio_recorder import IAudioRecorder
 from src.services.speech_registry import SpeechEngineRegistry
 from src.engines.speech_factories import (
     OpenAIWhisperFactory,
-    GoogleSpeechFactory,
     LocalWhisperFactory,
 )
 from src.services.recording_service import VoiceRecordingService
@@ -237,11 +236,6 @@ class DIContainer:
         registry.register_engine(
             name="openai", factory=OpenAIWhisperFactory(), priority=100
         )
-
-        # Google Speech Recognition as fallback (commented out for local testing)
-        # registry.register_engine(
-        #     name="google", factory=GoogleSpeechFactory(), priority=50
-        # )
 
         # Local Whisper as additional fallback (no internet required)
         registry.register_engine(

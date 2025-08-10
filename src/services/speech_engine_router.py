@@ -147,7 +147,6 @@ class SpeechEngineRouter(ISpeechEngineRouter):
         """Get the provider name for an engine"""
         provider_map = {
             "OpenAI Whisper": "OpenAI",
-            "Google Speech Recognition": "Google",
             "Local Whisper": "Local",
         }
         return provider_map.get(engine_name, "Unknown")

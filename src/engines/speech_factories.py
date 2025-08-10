@@ -3,7 +3,6 @@ from src.interfaces.speech_factory import ISpeechEngineFactory
 from src.interfaces.speech import ISpeechEngine
 from src.interfaces.settings import ISettingsManager
 from src.engines.openai_speech import OpenAIWhisperEngine
-from src.engines.speech_engine import SpeechRecognitionEngine
 from src.engines.local_whisper_speech import LocalWhisperEngine
 
 
@@ -30,33 +29,6 @@ class OpenAIWhisperFactory(ISpeechEngineFactory):
         try:
             api_key = settings.get_openai_key()
             return bool(api_key and api_key.strip())
-        except Exception:
-            return False
-
-
-class GoogleSpeechFactory(ISpeechEngineFactory):
-    """Factory for creating Google Speech Recognition engines"""
-
-    def create_engine(self, settings: ISettingsManager) -> ISpeechEngine:
-        """Create Google Speech Recognition engine instance"""
-        return SpeechRecognitionEngine("google")
-
-    def get_engine_info(self) -> Dict[str, Any]:
-        """Get information about Google Speech Recognition"""
-        return {
-            "name": "Google Speech Recognition",
-            "id": "google",
-            "provider": "Google",
-            "requires_internet": True,
-            "requires_api_key": False,
-        }
-
-    def is_available(self, settings: ISettingsManager) -> bool:
-        """Check if Google Speech Recognition is available"""
-        try:
-            # Google Speech Recognition is generally available if SpeechRecognition package is installed
-            engine = SpeechRecognitionEngine("google")
-            return engine.is_available()
         except Exception:
             return False
 
