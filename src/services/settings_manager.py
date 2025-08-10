@@ -24,7 +24,6 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
             "selected_provider": "local",  # Default to local provider
             "provider_api_keys": {
                 "openai": "",
-                "cerebras": "",  # Keep for future use
             },
             "custom_instructions": "",
         }
@@ -85,13 +84,6 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
         return self._settings.copy()
 
     # Legacy methods for backward compatibility (will be removed after refactor)
-    def get_cerebras_key(self) -> str:
-        """Legacy method - get Cerebras API key"""
-        return self.get_provider_api_key("cerebras") or ""
-
-    def set_cerebras_key(self, key: str) -> None:
-        """Legacy method - set Cerebras API key"""
-        self.set_provider_api_key("cerebras", key)
 
     def get_openai_key(self) -> str:
         """Legacy method - get OpenAI API key"""

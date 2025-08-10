@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 
 class ILLMClient(ABC):
-    """Abstract interface for LLM clients (Cerebras, OpenAI, etc.)"""
+    """Abstract interface for LLM clients (OpenAI, etc.)"""
 
     @abstractmethod
     def generate(self, system_prompt: str, user_input: str) -> str:
