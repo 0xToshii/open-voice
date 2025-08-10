@@ -4,11 +4,25 @@ A speech-to-text application for macOS that allows you to dictate into any appli
 
 ## More Info
 
-Open Voice is a Mac desktop application that transforms speech into text and intelligently inserts it into any application you're using. Simply press **Cmd+Option**, speak naturally, and watch your words appear in your current text field with AI-powered enhancements. 
+Open Voice is a Mac desktop application that transforms speech into text and intelligently inserts it into any application you're using. Simply press **Cmd+Option**, speak naturally, and watch your words appear in your current text field with AI-powered enhancements.
 
-It's currently implemented using the OpenAI Whisper endpoint, with Google Speech as the backup. Cerebras is used for fast LLM post-processing of the transcription. It's heavily influenced by Aqua Voice - but the idea here is that you can have the same experience while enjoying BYOK / pay-as-you-go pricing. Ideally in the future there will only be a single api to configure. Also, the current implementation isn't feature-complete, UI is clunky, and the setup is too tedious. A one click install would be much preferred.
+It's heavily influenced by Aqua Voice - but the idea here is that you can have the same experience while enjoying BYOK (bring your own key) and pay-as-you-go pricing across multiple providers.
+
+### Multi-Provider Architecture
+
+Open Voice supports multiple AI providers, each offering both **speech-to-text** and **LLM processing** capabilities. These are all plug-and-play, and just require you to get a key:
+
+**Providers:**
+1. **OpenAI:** Get a [key](https://platform.openai.com/).
+2. **Groq:** Get a [key](https://console.groq.com/).
+
+There is also a **Local Whisper** option which runs locally, without LLM processing, requiring no setup.
 
 ## Quick Start
+
+### Requirements
+
+- **Python 3.9+**
 
 ### Installation
 
@@ -18,41 +32,34 @@ It's currently implemented using the OpenAI Whisper endpoint, with Google Speech
    cd open-voice
    ```
 
-2. **Install Python dependencies:**
+2. **Create a virtual environment (recommended):**
+   ```bash
+   python -m venv myenv
+   source myenv/bin/activate  # On macOS/Linux
+   ```
+
+3. **Install Python dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the application:**
+4. **Run the application:**
    ```bash
    python main.py
    ```
 
-4. **Grant permissions when prompted:**
+5. **Grant permissions when prompted:**
    - Microphone access
    - Accessibility permissions
 
 ### Basic Usage
 
-1. **Start the app** - The GUI will open with settings and transcript history
+1. **Start the app** - The GUI will open on the settings page
+2. **Add a key to desired provider** - Optionally select your provider of choice from the dropdown and paste key
 2. **Press and hold Cmd+Option** - Recording overlay appears at bottom of screen
 3. **Speak clearly** - Audio waveform shows real-time levels
 4. **Release Cmd+Option** - Speech is transcribed and inserted into your current app
 5. **View results** - Check the transcript history in the main window
-
-## Configuration
-
-### API Keys Setup
-
-In the Settings page, you can optionally provide an OpenAI key (better transcriptions) and a Cerebras key (improved formatting of transcriptions). Even if you don't include these, the service will still work.
-
-1. **OpenAI Whisper: (Optional)**
-   - Get an API key from [OpenAI](https://platform.openai.com/api-keys)
-   - Enter in Settings → Speech → OpenAI API Key
-
-2. **LLM Processing (Optional):**
-   - **Cerebras** - Get key from [Cerebras](https://cloud.cerebras.ai/)
-   - Enter in Settings → LLM → Cerebras API Key
 
 ### Custom Instructions
 
