@@ -6,7 +6,7 @@ from src.interfaces.settings import ISettingsManager
 
 
 class OpenAILLMClient(ILLMClient):
-    """OpenAI LLM client for text processing using GPT-4 mini"""
+    """OpenAI LLM client for text processing"""
 
     def __init__(self, settings_manager: ISettingsManager):
         self.settings_manager = settings_manager
@@ -35,15 +35,13 @@ class OpenAILLMClient(ILLMClient):
                 {"role": "user", "content": user_input_prompt},
             ],
             "max_tokens": 2048,
-            "temperature": 0.1,  # Low temperature for consistent text processing
+            "temperature": 0,  # Low temperature for consistent text processing
             "stream": False,
+            "response_format": {"type": "json_object"},  #
         }
 
         try:
             print(f"OpenAI LLM: Processing text with {self.model}")
-            print(
-                f" - System prompt: {system_prompt[:100]}{'...' if len(system_prompt) > 100 else ''}"
-            )
             print(f" - Input: {user_input_prompt}")
 
             response = requests.post(
@@ -60,11 +58,33 @@ class OpenAILLMClient(ILLMClient):
             if "choices" not in response_data or len(response_data["choices"]) == 0:
                 raise Exception("Invalid response format from OpenAI API")
 
-            generated_text = response_data["choices"][0]["message"]["content"].strip()
+            json_content = response_data["choices"][0]["message"]["content"].strip()
 
-            print(f" - Output: {generated_text}")
+            try:
+                # Parse the JSON response
+                json_content = json_content.replace("```json", "").replace("```", "")
+                parsed_response = json.loads(json_content)
 
-            return generated_text
+                # Log thoughts for debugging/monitoring
+                if "thoughts" in parsed_response:
+                    print(f" - Thoughts: {parsed_response['thoughts']}")
+
+                # Extract the output field
+                if "output" in parsed_response:
+                    output_text = parsed_response["output"]
+                    print(f" - Output: {output_text}")
+                    return output_text
+                else:
+                    print(
+                        "No 'output' field in JSON response, returning original input"
+                    )
+                    return user_input
+
+            except json.JSONDecodeError as e:
+                print(f"Failed to parse JSON response: {e}")
+                print(f"Raw response: {json_content}")
+                # Return original input as fallback
+                return user_input
 
         except requests.exceptions.RequestException as e:
             print(f"OpenAI API request failed: {e}")
@@ -87,7 +107,5 @@ class OpenAILLMClient(ILLMClient):
             "provider": "OpenAI",
             "model": self.model,
             "api_base": self.api_base_url,
-            "max_tokens": 2048,
-            "temperature": 0.1,
             "available": self.is_available(),
         }

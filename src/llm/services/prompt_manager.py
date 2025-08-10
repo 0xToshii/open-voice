@@ -31,45 +31,45 @@ class FilePromptProvider(IPromptProvider):
     def _load_prompts(self) -> None:
         """Load all prompt files from the prompts directory"""
         if not os.path.exists(self.prompts_directory):
-            print(f"⚠️ Prompts directory '{self.prompts_directory}' not found")
+            print(f" Prompts directory '{self.prompts_directory}' not found")
             return
 
         try:
             files = os.listdir(self.prompts_directory)
-            txt_files = [f for f in files if f.endswith(".txt")]
+            prompt_files = [f for f in files if f.endswith((".txt", ".md"))]
 
-            print(f"📁 Loading prompts from '{self.prompts_directory}/'")
+            print(f" Loading prompts from '{self.prompts_directory}/'")
 
-            for filename in txt_files:
+            for filename in prompt_files:
                 try:
                     prompt_config = self._parse_prompt_file(filename)
                     if prompt_config:
                         self._prompts_cache[prompt_config.name] = prompt_config
                         print(
-                            f"   ✅ Loaded: {filename} -> {prompt_config.name} (order: {prompt_config.order})"
+                            f"   Loaded: {filename} -> {prompt_config.name} (order: {prompt_config.order})"
                         )
                     else:
-                        print(f"   ⚠️ Skipped: {filename} (invalid format)")
+                        print(f"   Skipped: {filename} (invalid format)")
                 except Exception as e:
-                    print(f"   ❌ Failed to load {filename}: {e}")
+                    print(f"   Failed to load {filename}: {e}")
 
             if not self._prompts_cache:
-                print("⚠️ No valid prompts loaded")
+                print("No valid prompts loaded")
             else:
-                print(f"✅ Loaded {len(self._prompts_cache)} prompts")
+                print(f" Loaded {len(self._prompts_cache)} prompts")
 
         except Exception as e:
-            print(f"❌ Failed to load prompts: {e}")
+            print(f" Failed to load prompts: {e}")
 
     def _parse_prompt_file(self, filename: str) -> PromptConfig:
         """Parse a prompt file and extract configuration"""
-        # Parse filename format: 01_grammar_fix.txt, 99_custom_instructions.txt
-        match = re.match(r"^(\d+)_(.+)\.txt$", filename)
+        # Parse filename format: 01_grammar_fix.txt, transcription_rewrite.md, etc.
+        match = re.match(r"^(?:(\d+)_)?(.+)\.(txt|md)$", filename)
         if not match:
             return None
 
-        order_str, name_part = match.groups()
-        order = int(order_str)
+        order_str, name_part, extension = match.groups()
+        order = int(order_str) if order_str else 1  # Default order if no number prefix
 
         # Convert filename to clean name (remove underscores, etc.)
         name = name_part.replace("_", " ").title().replace(" ", "")
@@ -122,7 +122,7 @@ class MockPromptProvider(IPromptProvider):
 
     def reload_prompts(self) -> None:
         """Mock reload - no-op"""
-        print("🔄 Mock prompt provider: reload_prompts called")
+        print(" Mock prompt provider: reload_prompts called")
 
     def get_prompt_by_name(self, name: str) -> PromptConfig:
         """Get mock prompt by name"""

@@ -25,24 +25,24 @@ class LLMTextProcessor(ITextProcessor):
         # Store original text for fallback
         original_text = text.strip()
 
-        print(f"🔄 LLM Single-Call: Starting text processing")
+        print(f"LLM Single-Call: Starting text processing")
         print(f"   Input: '{original_text}'")
 
         # Check if LLM router is available
         if not self.llm_router.is_available():
-            print("⚠️ LLM router not available, returning original text")
+            print("LLM router not available, returning original text")
             return original_text
 
         try:
             # Load the base text rewriter prompt
             try:
                 base_prompt_config = self.prompt_provider.get_prompt_by_name(
-                    "TextRewriter"
+                    "TranscriptionRewrite"
                 )
                 base_prompt = base_prompt_config.content
-                print("✅ Loaded base text rewriter prompt")
+                print("Loaded base text rewriter prompt")
             except KeyError:
-                print("❌ TextRewriter prompt not found, returning original text")
+                print("TranscriptionRewrite prompt not found, returning original text")
                 return original_text
 
             # Check for custom instructions and append if present
@@ -51,13 +51,13 @@ class LLMTextProcessor(ITextProcessor):
                 custom_section = f"\n\n## Additional Instructions\n\nAlso apply the following custom user preferences / instructions to the text: {custom_instructions}"
                 final_prompt = base_prompt + custom_section
                 print(
-                    f"✅ Added custom instructions: '{custom_instructions[:50]}{'...' if len(custom_instructions) > 50 else ''}'"
+                    f"Added custom instructions: '{custom_instructions[:50]}{'...' if len(custom_instructions) > 50 else ''}'"
                 )
             else:
                 final_prompt = base_prompt
-                print("ℹ️ No custom instructions provided")
+                print("No custom instructions provided")
 
-            print("🧠 Making LLM router call...")
+            print("Making LLM router call...")
 
             # Single LLM call through router (with automatic fallback)
             processed_text = self.llm_router.process_with_best_llm(
@@ -67,9 +67,9 @@ class LLMTextProcessor(ITextProcessor):
             # Log which LLM was actually used
             llm_info = self.llm_router.get_last_used_llm_info()
             if llm_info["success"]:
-                print(f"🎯 Used LLM: {llm_info['provider']} ({llm_info['model']})")
+                print(f"Used LLM: {llm_info['provider']} ({llm_info['model']})")
             else:
-                print(f"⚠️ LLM failed: {llm_info.get('error', 'Unknown error')}")
+                print(f"LLM failed: {llm_info.get('error', 'Unknown error')}")
 
             if (
                 processed_text
@@ -78,16 +78,16 @@ class LLMTextProcessor(ITextProcessor):
             ):
                 result = processed_text.strip()
                 print(
-                    f"✅ LLM processing complete: '{result[:50]}{'...' if len(result) > 50 else ''}'"
+                    f"LLM processing complete: '{result[:50]}{'...' if len(result) > 50 else ''}'"
                 )
                 return result
             else:
-                print("⚠️ LLM returned original text, no processing applied")
+                print("LLM returned original text, no processing applied")
                 return original_text
 
         except Exception as e:
-            print(f"❌ LLM processing unexpected error: {e}")
-            print(f"🚨 Returning original text due to processing failure")
+            print(f"LLM processing unexpected error: {e}")
+            print(f"Returning original text due to processing failure")
             return original_text
 
     def get_processing_info(self) -> dict:
@@ -108,7 +108,7 @@ class LLMTextProcessor(ITextProcessor):
                     "last_used_llm": last_used_llm,
                     "router_available": self.llm_router.is_available(),
                 },
-                "base_prompt": "TextRewriter",
+                "base_prompt": "TranscriptionRewrite",
                 "has_custom_instructions": has_custom_instructions,
                 "custom_instructions_preview": (
                     custom_instructions[:100] if has_custom_instructions else None
@@ -129,5 +129,5 @@ class PassthroughTextProcessor(ITextProcessor):
 
     def process_text(self, text: str) -> str:
         """Return text as-is with basic cleanup"""
-        print("📝 Passthrough processor: No LLM processing")
+        print("Passthrough processor: No LLM processing")
         return text.strip() if text else ""
