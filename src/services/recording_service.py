@@ -8,6 +8,7 @@ from src.services.text_inserter_factory import TextInserterFactory
 from PySide6.QtCore import QObject, Signal
 from datetime import datetime
 import time
+import os
 from typing import Optional
 
 
@@ -140,12 +141,40 @@ class VoiceRecordingService(QObject):
             # Process text through LLM pipeline
             processed_text = self.text_processor.process_text(original_text)
 
-            # Save to data store
+            # Get provider info from speech router
+            provider_info = self.speech_router.get_last_used_engine_info()
+            provider_used = provider_info.get("provider", "unknown")
+
+            # Save to data store first (without audio path) to get transcript ID
             transcript_id = self.data_store.save_transcript(
                 original_text=original_text,
                 processed_text=processed_text,
                 duration=duration,
+                audio_file_path=None,  # Will update this after saving audio
+                provider_used=provider_used,
             )
+
+            # Now save audio file with correct transcript ID
+            audio_file_path = None
+            try:
+                audio_file_path = self.data_store.save_audio_file(
+                    audio_data, transcript_id
+                )
+                print(f"Saved audio file: {audio_file_path}")
+
+                # Update the transcript record with the audio file path
+                if audio_file_path:
+                    success = self.data_store.update_audio_path(
+                        transcript_id, audio_file_path
+                    )
+                    if not success:
+                        print(
+                            f"Failed to update audio path in database for transcript {transcript_id}"
+                        )
+
+            except Exception as e:
+                print(f"Failed to save audio file: {e}")
+                audio_file_path = None
 
             # Create transcript entry for UI
             entry = TranscriptEntry(
@@ -155,6 +184,8 @@ class VoiceRecordingService(QObject):
                 timestamp=datetime.now(),
                 duration=duration,
                 inserted_successfully=False,
+                audio_file_path=audio_file_path,
+                provider_used=provider_used,
             )
 
             # Notify UI about new transcript
@@ -338,6 +369,8 @@ class MockVoiceRecordingService(QObject):
             timestamp=datetime.now(),
             duration=2.5,
             inserted_successfully=True,
+            audio_file_path=None,
+            provider_used="mock",
         )
 
         print(f"Mock recording completed: '{text}'")

@@ -20,7 +20,6 @@ class OpenAISpeechFactory(ISpeechEngineFactory):
             "name": "OpenAI Speech",
             "id": "openai",
             "provider": "OpenAI",
-            "requires_internet": True,
             "requires_api_key": True,
             "model": "whisper-1",
         }
@@ -47,7 +46,6 @@ class GroqSpeechFactory(ISpeechEngineFactory):
             "name": "Groq Speech",
             "id": "groq",
             "provider": "Groq",
-            "requires_internet": True,
             "requires_api_key": True,
             "model": "whisper-large-v3",
         }
@@ -74,7 +72,6 @@ class LocalWhisperFactory(ISpeechEngineFactory):
             "name": "Local Whisper",
             "id": "local_whisper",
             "provider": "Local",
-            "requires_internet": False,
             "requires_api_key": False,
             "model_sizes": ["tiny", "base", "small", "medium", "large"],
         }

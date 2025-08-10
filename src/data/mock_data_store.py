@@ -1,5 +1,5 @@
 from src.interfaces.data_store import IDataStore, TranscriptEntry
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timedelta
 import random
 
@@ -32,12 +32,19 @@ class MockDataStore(IDataStore):
                 timestamp=timestamp,
                 duration=duration,
                 inserted_successfully=True,
+                audio_file_path=None,
+                provider_used="mock",
             )
             self.transcripts.append(entry)
             self.next_id += 1
 
     def save_transcript(
-        self, original_text: str, processed_text: str, duration: float
+        self,
+        original_text: str,
+        processed_text: str,
+        duration: float,
+        audio_file_path: Optional[str] = None,
+        provider_used: str = "unknown",
     ) -> int:
         """Save a transcript entry and return its ID"""
         entry = TranscriptEntry(
@@ -47,6 +54,8 @@ class MockDataStore(IDataStore):
             timestamp=datetime.now(),
             duration=duration,
             inserted_successfully=False,
+            audio_file_path=audio_file_path,
+            provider_used=provider_used,
         )
         self.transcripts.append(entry)
         self.next_id += 1
@@ -66,3 +75,39 @@ class MockDataStore(IDataStore):
             if transcript.id == transcript_id:
                 transcript.inserted_successfully = success
                 break
+
+    def delete_transcript(self, transcript_id: int) -> bool:
+        """Delete a transcript entry and its audio file. Returns True if successful"""
+        for i, transcript in enumerate(self.transcripts):
+            if transcript.id == transcript_id:
+                del self.transcripts[i]
+                print(f"Deleted transcript {transcript_id}")
+                return True
+        print(f"Transcript {transcript_id} not found")
+        return False
+
+    def get_transcript_audio_path(self, transcript_id: int) -> Optional[str]:
+        """Get the audio file path for a transcript"""
+        for transcript in self.transcripts:
+            if transcript.id == transcript_id:
+                return transcript.audio_file_path
+        return None
+
+    def save_audio_file(self, audio_data: bytes, transcript_id: int) -> Optional[str]:
+        """Save audio data to file and return the file path (mock implementation)"""
+        # Mock implementation - just return a fake path for testing
+        fake_path = f"/tmp/mock_audio/transcript_{transcript_id}.wav"
+        print(f"Mock: Would save {len(audio_data)} bytes to {fake_path}")
+        return fake_path
+
+    def update_audio_path(self, transcript_id: int, audio_file_path: str) -> bool:
+        """Update the audio file path for a transcript (mock implementation)"""
+        for transcript in self.transcripts:
+            if transcript.id == transcript_id:
+                transcript.audio_file_path = audio_file_path
+                print(
+                    f"Mock: Updated audio path for transcript {transcript_id} to {audio_file_path}"
+                )
+                return True
+        print(f"Mock: Transcript {transcript_id} not found for audio path update")
+        return False

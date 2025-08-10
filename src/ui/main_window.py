@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QFrame,
     QSizePolicy,
     QStackedWidget,
+    QApplication,
+    QDialog,
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QPalette
@@ -17,6 +19,7 @@ from src.services.recording_service import VoiceRecordingService
 from src.ui.recording_overlay import RecordingOverlay
 from src.ui.settings_view import SettingsView
 from src.ui.custom_instructions_view import CustomInstructionsView
+from src.ui.components.delete_confirmation_dialog import DeleteConfirmationDialog
 from src.interfaces.settings import ISettingsManager
 from src.interfaces.speech_factory import ISpeechEngineRegistry
 from typing import List
@@ -97,9 +100,13 @@ class SidebarWidget(QWidget):
 class TranscriptBubble(QWidget):
     """Individual transcript bubble widget"""
 
-    def __init__(self, entry: TranscriptEntry):
+    def __init__(
+        self, entry: TranscriptEntry, data_store: IDataStore = None, history_view=None
+    ):
         super().__init__()
         self.entry = entry
+        self.data_store = data_store
+        self.history_view = history_view
         self.setup_ui()
 
     def setup_ui(self):
@@ -118,13 +125,27 @@ class TranscriptBubble(QWidget):
         header_layout.addWidget(header_label)
         header_layout.addStretch()
 
-        # Action buttons
-        action_buttons = ["▶️", "🔄", "👍", "👎", "📋", "⋯"]
-        for btn_text in action_buttons:
-            btn = QPushButton(btn_text)
-            btn.setObjectName("actionButton")
-            btn.setFixedSize(30, 30)
-            header_layout.addWidget(btn)
+        # Action buttons - Play, Copy, Delete
+        self.play_btn = QPushButton("▶")
+        self.play_btn.setObjectName("actionButton")
+        self.play_btn.setFixedSize(30, 30)
+        self.play_btn.setToolTip("Play recording")
+        self.play_btn.clicked.connect(self.on_play_clicked)
+        header_layout.addWidget(self.play_btn)
+
+        self.copy_btn = QPushButton("📋")
+        self.copy_btn.setObjectName("actionButton")
+        self.copy_btn.setFixedSize(30, 30)
+        self.copy_btn.setToolTip("Copy text to clipboard")
+        self.copy_btn.clicked.connect(self.on_copy_clicked)
+        header_layout.addWidget(self.copy_btn)
+
+        self.delete_btn = QPushButton("🗑️")
+        self.delete_btn.setObjectName("actionButton")
+        self.delete_btn.setFixedSize(30, 30)
+        self.delete_btn.setToolTip("Delete transcript")
+        self.delete_btn.clicked.connect(self.on_delete_clicked)
+        header_layout.addWidget(self.delete_btn)
 
         layout.addLayout(header_layout)
 
@@ -160,6 +181,54 @@ class TranscriptBubble(QWidget):
         seconds = int(duration % 60)
         return f"{minutes:02d}:{seconds:02d}"
 
+    def on_play_clicked(self):
+        """Handle play button click"""
+        print(f"Playing audio for transcript {self.entry.id}")
+        # TODO: Implement audio playback functionality
+        # For now, just show a message
+        if self.entry.audio_file_path:
+            print(f"Would play audio file: {self.entry.audio_file_path}")
+        else:
+            print("No audio file available for this transcript")
+
+    def on_copy_clicked(self):
+        """Handle copy button click"""
+        # Copy processed text (or original if no processed text) to clipboard
+        text_to_copy = self.entry.processed_text or self.entry.original_text
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text_to_copy)
+        print(f"Copied to clipboard: '{text_to_copy[:50]}...'")
+
+    def on_delete_clicked(self):
+        """Handle delete button click with confirmation dialog"""
+        if not self.data_store:
+            print("No data store available for deletion")
+            return
+
+        # Show confirmation dialog
+        dialog = DeleteConfirmationDialog(self)
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            # User confirmed deletion
+            try:
+                success = self.data_store.delete_transcript(self.entry.id)
+                if success:
+                    print(f"Successfully deleted transcript {self.entry.id}")
+                    # Notify parent BEFORE deleting self
+                    if self.history_view:
+                        self.history_view.on_transcript_deleted(self.entry.id)
+                    # Efficient deletion - just remove this widget
+                    self.hide()
+                    self.deleteLater()
+                else:
+                    print(f"Failed to delete transcript {self.entry.id}")
+            except Exception as e:
+                print(f"Error deleting transcript {self.entry.id}: {e}")
+        else:
+            # User cancelled
+            print(f"Deletion cancelled for transcript {self.entry.id}")
+
 
 class HistoryView(QScrollArea):
     """Main history view showing transcript bubbles"""
@@ -189,18 +258,88 @@ class HistoryView(QScrollArea):
 
     def load_transcripts(self):
         """Load and display transcript entries"""
-        transcripts = self.data_store.get_transcripts(limit=50)
+        try:
+            transcripts = self.data_store.get_transcripts(limit=50)
 
-        for transcript in transcripts:
-            bubble = TranscriptBubble(transcript)
-            self.content_layout.addWidget(bubble)
+            if len(transcripts) == 0:
+                # Show empty state if no transcripts
+                self.add_empty_state_widget()
+            else:
+                # Add transcript bubbles
+                for transcript in transcripts:
+                    bubble = TranscriptBubble(transcript, self.data_store, self)
+                    self.content_layout.addWidget(bubble)
 
-        self.content_layout.addStretch()
+            self.content_layout.addStretch()
+
+        except Exception as e:
+            print(f"Error loading transcripts: {e}")
+            # Show error state or empty state as fallback
+            self.add_empty_state_widget()
+            self.content_layout.addStretch()
 
     def add_new_transcript(self, entry: TranscriptEntry):
         """Add a new transcript bubble at the top"""
-        bubble = TranscriptBubble(entry)
+        # Remove empty state widget if it exists (since we're adding a transcript)
+        self.remove_empty_state_widget()
+
+        bubble = TranscriptBubble(entry, self.data_store, self)
         self.content_layout.insertWidget(0, bubble)
+
+    def on_transcript_deleted(self, transcript_id: int):
+        """Handle efficient transcript deletion and manage empty state"""
+        print(f"Transcript {transcript_id} deleted from view")
+
+        # Check database (source of truth) for remaining transcripts
+        try:
+            remaining_transcripts = self.data_store.get_transcripts(limit=1)
+            remaining_count = len(remaining_transcripts)
+            print(f"Remaining transcripts: {remaining_count}")
+
+            if remaining_count == 0:
+                self.add_empty_state_widget()
+        except Exception as e:
+            print(f"Error checking remaining transcripts: {e}")
+
+    def remove_empty_state_widget(self):
+        """Remove empty state widget if it exists"""
+        for i in range(self.content_layout.count()):
+            widget = self.content_layout.itemAt(i).widget()
+            if widget and widget.objectName() == "emptyStateWidget":
+                self.content_layout.removeWidget(widget)
+                widget.deleteLater()
+                break
+
+    def add_empty_state_widget(self):
+        """Add empty state message when no transcripts exist"""
+        empty_widget = QWidget()
+        empty_widget.setObjectName("emptyStateWidget")
+
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setSpacing(10)
+
+        # Empty state message
+        title_label = QLabel("No transcripts yet")
+        title_label.setObjectName("emptyStateTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        desc_label = QLabel("Start recording to see your transcripts appear here")
+        desc_label.setObjectName("emptyStateDesc")
+        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(title_label)
+        layout.addWidget(desc_label)
+        empty_widget.setLayout(layout)
+
+        # Insert before the stretch (which should be the last item)
+        stretch_index = self.content_layout.count() - 1
+        if stretch_index >= 0:
+            self.content_layout.insertWidget(stretch_index, empty_widget)
+        else:
+            self.content_layout.addWidget(empty_widget)
+
+        print("Added empty state widget")
 
     def refresh_transcripts(self):
         """Refresh the transcript list"""
@@ -362,7 +501,7 @@ class MainWindow(QMainWindow):
         # Switch to the appropriate view using QStackedWidget
         if item_name == "History":
             self.content_stack.setCurrentWidget(self.history_view)
-            self.history_view.refresh_transcripts()
+            # No refresh needed - history view is always up to date
         elif item_name == "Settings":
             self.content_stack.setCurrentWidget(self.settings_view)
         elif item_name == "Dictionary":
@@ -377,8 +516,8 @@ class MainWindow(QMainWindow):
 
     def add_transcript_entry(self, entry: TranscriptEntry):
         """Add a new transcript entry to the history"""
-        if self.current_view == "History":
-            self.history_view.add_new_transcript(entry)
+        # Always add to history view regardless of current tab
+        self.history_view.add_new_transcript(entry)
 
     def connect_settings_changes(self):
         """Connect to settings changes to switch speech engines dynamically"""
@@ -483,15 +622,43 @@ class MainWindow(QMainWindow):
         }
         
         #actionButton {
-            border: none;
-            background: transparent;
+            border: 1px solid #ddd;
+            background-color: #f8f8f8;
+            color: #333;
             font-size: 14px;
             padding: 5px;
             border-radius: 4px;
+            font-weight: 500;
         }
         
         #actionButton:hover {
-            background-color: #e0e0e0;
+            background-color: #e8e8e8;
+            border-color: #ccc;
+            color: #000;
+        }
+        
+        #actionButton:pressed {
+            background-color: #ddd;
+            border-color: #bbb;
+        }
+        
+        /* Empty State Styles */
+        #emptyStateWidget {
+            background-color: transparent;
+            padding: 40px;
+        }
+        
+        #emptyStateTitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: #666;
+            background-color: transparent;
+        }
+        
+        #emptyStateDesc {
+            font-size: 14px;
+            color: #999;
+            background-color: transparent;
         }
         
         /* Settings View Styles */

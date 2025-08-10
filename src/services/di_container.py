@@ -15,6 +15,7 @@ from src.engines.speech_factories import (
 from src.services.recording_service import VoiceRecordingService
 from src.services.settings_manager import SettingsManager
 from src.data.mock_data_store import MockDataStore
+from src.data.sqlite_data_store import SQLiteDataStore
 from src.services.text_processor import TextProcessor
 from src.services.audio_recorder import PyAudioRecorder, MockAudioRecorder
 from src.services.hotkey_handler import CmdOptionHandler, MockHotkeyHandler
@@ -80,7 +81,7 @@ class DIContainer:
     def get_data_store(self) -> IDataStore:
         """Get data store singleton"""
         if self._data_store is None:
-            self._data_store = MockDataStore()
+            self._data_store = SQLiteDataStore()
         return self._data_store
 
     def get_llm_client(self) -> ILLMClient:
