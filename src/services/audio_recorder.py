@@ -10,10 +10,13 @@ from src.interfaces.audio_recorder import IAudioRecorder
 class PyAudioRecorder(IAudioRecorder):
     """Real audio recorder using sounddevice for microphone capture"""
 
-    def __init__(self, sample_rate: int = 16000, channels: int = 1):
+    def __init__(self, sample_rate: int = 16000, channels: int = 1, device_id=None):
         self.sample_rate = sample_rate
         self.channels = channels
         self.chunk_size = 1024  # Audio buffer size
+
+        # Device configuration
+        self.device_id = self._parse_device_id(device_id)
 
         # Recording state
         self._is_recording = False
@@ -28,6 +31,16 @@ class PyAudioRecorder(IAudioRecorder):
 
         # Debug: Show available audio devices
         self._print_audio_devices()
+
+    def _parse_device_id(self, device_id):
+        """Parse device ID to handle 'default' and integer IDs"""
+        if device_id is None or device_id == "default":
+            return None  # Use system default
+        try:
+            return int(device_id)
+        except (ValueError, TypeError):
+            print(f"Invalid device ID '{device_id}', using default")
+            return None
 
     def _print_audio_devices(self):
         """Debug: Print all available audio devices"""
@@ -85,19 +98,25 @@ class PyAudioRecorder(IAudioRecorder):
         self._audio_buffer = []
 
         try:
-            # Create audio input stream
+            # Create audio input stream with specific device
             self._stream = sd.InputStream(
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype=np.float32,
                 blocksize=self.chunk_size,
                 callback=self._audio_callback,
+                device=self.device_id,  # Use selected device
             )
 
             # Start the stream
             self._stream.start()
+            device_info = (
+                f" on device {self.device_id}"
+                if self.device_id is not None
+                else " on default device"
+            )
             print(
-                f"✅ Audio stream started: {self.sample_rate}Hz, {self.channels} channel(s)"
+                f" Audio stream started: {self.sample_rate}Hz, {self.channels} channel(s){device_info}"
             )
 
         except Exception as e:
@@ -112,7 +131,7 @@ class PyAudioRecorder(IAudioRecorder):
         if not self._is_recording:
             return None
 
-        print("🛑 Stopping audio recording...")
+        print(" Stopping audio recording...")
         self._is_recording = False
 
         try:
@@ -124,7 +143,7 @@ class PyAudioRecorder(IAudioRecorder):
 
             # Collect all audio data
             if not self._audio_buffer:
-                print("⚠️ No audio data recorded")
+                print(" No audio data recorded")
                 return None
 
             # Convert audio buffer to numpy array
@@ -136,7 +155,7 @@ class PyAudioRecorder(IAudioRecorder):
             # Check for silence BEFORE normalization using raw RMS
             if raw_rms < 0.002:  # Very low threshold for raw audio
                 print(
-                    f"🔇 Raw audio too quiet (RMS: {raw_rms:.6f}) - detected as silence"
+                    f" Raw audio too quiet (RMS: {raw_rms:.6f}) - detected as silence"
                 )
                 return b""  # Return empty bytes to signal silence
 
@@ -147,7 +166,7 @@ class PyAudioRecorder(IAudioRecorder):
 
             duration = len(audio_data) / self.sample_rate
             print(
-                f"✅ Audio recording completed: {duration:.2f}s, {len(audio_bytes)} bytes"
+                f" Audio recording completed: {duration:.2f}s, {len(audio_bytes)} bytes"
             )
 
             # Debug: Save WAV file for manual inspection
@@ -156,7 +175,7 @@ class PyAudioRecorder(IAudioRecorder):
             return audio_bytes
 
         except Exception as e:
-            print(f"❌ Error stopping audio recording: {e}")
+            print(f" Error stopping audio recording: {e}")
             return None
 
     def _analyze_audio_data(self, audio_data: np.ndarray) -> float:
@@ -181,16 +200,16 @@ class PyAudioRecorder(IAudioRecorder):
 
             # Check if we have actual audio content
             if rms < 0.001:
-                print("⚠️ WARNING: Audio RMS very low - might be silence/noise")
+                print(" WARNING: Audio RMS very low - might be silence/noise")
             elif rms > 0.1:
-                print("✅ Good audio levels detected")
+                print(" Good audio levels detected")
             else:
-                print("⚠️ Audio levels seem low but present")
+                print(" Audio levels seem low but present")
 
             return rms
 
         except Exception as e:
-            print(f"❌ Error analyzing audio: {e}")
+            print(f" Error analyzing audio: {e}")
             return 0.0
 
     def _normalize_audio(self, audio_data: np.ndarray) -> np.ndarray:
@@ -212,15 +231,15 @@ class PyAudioRecorder(IAudioRecorder):
                 # Normalize to 70% of maximum to prevent clipping
                 audio_flat = audio_flat * (0.7 / peak)
                 print(
-                    f"🔧 Audio normalized: peak was {peak:.4f}, now {np.max(np.abs(audio_flat)):.4f}"
+                    f" Audio normalized: peak was {peak:.4f}, now {np.max(np.abs(audio_flat)):.4f}"
                 )
             else:
-                print("⚠️ Audio peak is zero - no normalization applied")
+                print(" Audio peak is zero - no normalization applied")
 
             return audio_flat
 
         except Exception as e:
-            print(f"❌ Error normalizing audio: {e}")
+            print(f" Error normalizing audio: {e}")
             return audio_data
 
     def _save_debug_wav(self, audio_bytes: bytes, duration: float) -> None:
@@ -247,7 +266,7 @@ class PyAudioRecorder(IAudioRecorder):
                 wav_file.setframerate(self.sample_rate)  # 16kHz
                 wav_file.writeframes(audio_bytes)
 
-            print(f"💾 Debug WAV saved: {wav_file_path} ({duration:.2f}s)")
+            print(f" Debug WAV saved: {wav_file_path} ({duration:.2f}s)")
             print(f"   You can play this file to verify audio quality")
 
         except Exception as e:
@@ -284,7 +303,7 @@ class PyAudioRecorder(IAudioRecorder):
                     self._current_level = level
 
         except Exception as e:
-            print(f"❌ Audio callback error: {e}")
+            print(f" Audio callback error: {e}")
 
     def get_audio_info(self) -> dict:
         """Get audio recording configuration info"""
@@ -309,7 +328,7 @@ class MockAudioRecorder(IAudioRecorder):
         """Mock start recording"""
         self._is_recording = True
         self._start_time = time.time()
-        print("🎤 Mock audio recording started")
+        print(" Mock audio recording started")
 
     def stop_recording(self) -> Optional[bytes]:
         """Mock stop recording with fake audio data"""
@@ -324,7 +343,7 @@ class MockAudioRecorder(IAudioRecorder):
         samples = int(duration * sample_rate)
         fake_audio = np.zeros(samples, dtype=np.int16)
 
-        print(f"🎤 Mock audio recording completed: {duration:.2f}s")
+        print(f" Mock audio recording completed: {duration:.2f}s")
         return fake_audio.tobytes()
 
     def is_recording(self) -> bool:

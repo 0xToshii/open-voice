@@ -27,6 +27,8 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
                 "groq": "",
             },
             "custom_instructions": "",
+            "selected_microphone_id": "default",  # Default to system default
+            "selected_microphone_name": "Default",  # Display name for UI
         }
 
     def get_selected_provider(self) -> str:
@@ -72,10 +74,22 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
         """Set custom instructions"""
         self._settings["custom_instructions"] = instructions
         self.setting_changed.emit("custom_instructions", instructions)
-        print(f"Custom instructions updated: {len(instructions)} characters")
-        print(
-            f"   Preview: {instructions[:50]}{'...' if len(instructions) > 50 else ''}"
-        )
+
+    def get_selected_microphone_id(self) -> str:
+        """Get selected microphone device ID"""
+        return self._settings["selected_microphone_id"]
+
+    def get_selected_microphone_name(self) -> str:
+        """Get selected microphone display name"""
+        return self._settings["selected_microphone_name"]
+
+    def set_selected_microphone(self, device_id: str, device_name: str) -> None:
+        """Set selected microphone device"""
+        self._settings["selected_microphone_id"] = device_id
+        self._settings["selected_microphone_name"] = device_name
+        self.setting_changed.emit("selected_microphone_id", device_id)
+        self.setting_changed.emit("selected_microphone_name", device_name)
+        print(f"Microphone updated to: {device_name} (ID: {device_id})")
 
     def get_all(self) -> dict:
         """Get all settings"""

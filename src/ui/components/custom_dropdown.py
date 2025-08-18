@@ -15,7 +15,7 @@ from typing import List, Optional
 class DropdownList(QWidget):
     """Custom dropdown list widget that appears below the main button"""
 
-    ITEM_HEIGHT = 32  # Height of each dropdown item - easy to adjust in one place
+    ITEM_HEIGHT = 28  # Height of each dropdown item - more compact like Aqua Voice
 
     item_selected = Signal(int)  # Emits the index of selected item
 
@@ -409,11 +409,10 @@ class CustomDropdown(QWidget):
         self.dropdown_list.selected_index = self.current_index
         self.dropdown_list.item_selected.connect(self._on_item_selected)
 
-        # Position dropdown below this widget with proper spacing
-        # Use bottom edge, not bottom-left corner
+        # Position dropdown directly below this widget like Aqua Voice
         button_bottom = self.mapToGlobal(self.rect().bottomLeft())
         dropdown_x = button_bottom.x()
-        dropdown_y = button_bottom.y() + 25  # px gap below button for proper spacing
+        dropdown_y = button_bottom.y() + 25  # px gap for clean separation
 
         self.dropdown_list.move(dropdown_x, dropdown_y)
 

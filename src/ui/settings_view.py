@@ -8,8 +8,10 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton
 from src.interfaces.settings import ISettingsManager
 from src.ui.components.custom_dropdown import CustomDropdown
+from src.services.audio_device_manager import AudioDeviceManager
 
 
 class SettingsView(QScrollArea):
@@ -18,9 +20,11 @@ class SettingsView(QScrollArea):
     def __init__(self, settings_manager: ISettingsManager):
         super().__init__()
         self.settings_manager = settings_manager
+        self.audio_device_manager = AudioDeviceManager()
         self.setup_ui()
         self.connect_signals()
         self.update_ui_for_provider()  # Initialize UI state
+        self.update_microphone_dropdown()  # Initialize microphone devices
 
     def setup_ui(self):
         self.setWidgetResizable(True)
@@ -41,6 +45,10 @@ class SettingsView(QScrollArea):
         # Provider section
         provider_section = self.create_provider_section()
         layout.addWidget(provider_section)
+
+        # Microphone section
+        microphone_section = self.create_microphone_section()
+        layout.addWidget(microphone_section)
 
         layout.addStretch()
 
@@ -112,6 +120,7 @@ class SettingsView(QScrollArea):
         """Connect input field changes to settings manager"""
         self.provider_combo.current_index_changed.connect(self.on_provider_changed)
         self.api_key_input.textChanged.connect(self.on_api_key_changed)
+        self.microphone_combo.current_index_changed.connect(self.on_microphone_changed)
 
         # Listen for external setting changes
         self.settings_manager.setting_changed.connect(self.on_setting_changed)
@@ -155,6 +164,105 @@ class SettingsView(QScrollArea):
                 current_key = self.settings_manager.get_provider_api_key("groq") or ""
                 self.api_key_input.setText(current_key)
 
+    def create_microphone_section(self) -> QWidget:
+        """Create the microphone configuration section"""
+        section = QFrame()
+        section.setObjectName("settingsSection")
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 15, 20, 20)
+        layout.setSpacing(15)
+
+        # Section title
+        section_title = QLabel("Microphone")
+        section_title.setObjectName("sectionTitle")
+        layout.addWidget(section_title)
+
+        # Microphone dropdown row
+        microphone_row = QHBoxLayout()
+        microphone_label = QLabel("Microphone:")
+        microphone_label.setObjectName("settingLabel")
+        microphone_label.setMinimumWidth(120)
+
+        self.microphone_combo = CustomDropdown()
+
+        # Refresh button
+        self.refresh_button = QPushButton("↻")
+        self.refresh_button.setObjectName("refreshButton")
+        self.refresh_button.setFixedSize(30, 30)
+        self.refresh_button.clicked.connect(self.on_refresh_devices)
+        self.refresh_button.setToolTip("Refresh device list")
+
+        # Style the refresh button to look like Aqua Voice - flat and borderless
+        self.refresh_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #666666;
+                font-size: 16px;
+                font-weight: normal;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+                color: #333333;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+                color: #000000;
+            }
+        """
+        )
+
+        microphone_row.addWidget(microphone_label)
+        microphone_row.addWidget(self.microphone_combo, 1)
+        microphone_row.addWidget(self.refresh_button)
+        layout.addLayout(microphone_row)
+
+        section.setLayout(layout)
+        return section
+
+    def update_microphone_dropdown(self):
+        """Update microphone dropdown with available devices"""
+        try:
+            # Clear existing items
+            self.microphone_combo.clear()
+
+            # Get available devices
+            devices = self.audio_device_manager.get_input_devices()
+
+            # Add devices to dropdown
+            for device in devices:
+                self.microphone_combo.add_item(device.name, str(device.device_id))
+
+            # Set current selection
+            current_mic_id = self.settings_manager.get_selected_microphone_id()
+            for i in range(len(self.microphone_combo.items)):
+                if self.microphone_combo.items[i]["data"] == current_mic_id:
+                    self.microphone_combo.set_current_index(i)
+                    break
+            else:
+                # If current device not found, default to first item (usually "Default")
+                if len(self.microphone_combo.items) > 0:
+                    self.microphone_combo.set_current_index(0)
+
+        except Exception as e:
+            print(f"Error updating microphone dropdown: {e}")
+
+    def on_microphone_changed(self, index: int):
+        """Handle microphone selection change"""
+        device_id = self.microphone_combo.current_data()
+        device_name = self.microphone_combo.current_text()
+
+        if device_id and device_name:
+            self.settings_manager.set_selected_microphone(device_id, device_name)
+
+    def on_refresh_devices(self):
+        """Handle refresh button click"""
+        print("Refreshing audio devices...")
+        self.update_microphone_dropdown()
+
     def on_setting_changed(self, key: str, value: str):
         """Update UI when settings change externally"""
         if key == "selected_provider":
@@ -172,3 +280,12 @@ class SettingsView(QScrollArea):
             if key == f"provider_api_key_{current_provider}":
                 if self.api_key_input.text() != value:
                     self.api_key_input.setText(value)
+        elif key in ["selected_microphone_id", "selected_microphone_name"]:
+            # Update microphone dropdown if needed
+            if key == "selected_microphone_id":
+                current_mic_id = value
+                for i in range(len(self.microphone_combo.items)):
+                    if self.microphone_combo.items[i]["data"] == current_mic_id:
+                        if self.microphone_combo.current_index != i:
+                            self.microphone_combo.set_current_index(i)
+                        break
