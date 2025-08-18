@@ -58,7 +58,7 @@ class SettingsView(QScrollArea):
         layout.setSpacing(15)
 
         # Section title
-        section_title = QLabel("Provider Configuration")
+        section_title = QLabel("API Provider")
         section_title.setObjectName("sectionTitle")
         layout.addWidget(section_title)
 

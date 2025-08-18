@@ -63,9 +63,6 @@ class SettingsManager(QObject, ISettingsManager, metaclass=ABCQObjectMeta):
 
         self._settings["provider_api_keys"][provider] = api_key
         self.setting_changed.emit(f"provider_api_key_{provider}", api_key)
-        print(
-            f"{provider.capitalize()} API key updated: {'*' * min(len(api_key), 10) if api_key else 'empty'}"
-        )
 
     def get_custom_instructions(self) -> str:
         """Get custom instructions"""

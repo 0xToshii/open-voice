@@ -696,38 +696,38 @@ class MainWindow(QMainWindow):
             background-color: transparent;
         }
         
-        #settingsSection {
+        #settingsView #settingsSection {
             background-color: #ffffff !important;
             border: 1px solid #e8e8e8;
             border-radius: 12px;
             margin-bottom: 20px;
         }
         
-        #sectionTitle {
-            font-size: 16px;
+        #settingsView #sectionTitle {
+            font-size: 15px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 15px;
-            background-color: transparent;
+            margin-bottom: 8px;
+            background-color: #ffffff !important;
         }
         
-        #settingLabel {
+        #settingsView #settingLabel {
             font-size: 14px;
             font-weight: 500;
             color: #555;
             padding: 5px 0;
-            background-color: transparent;
+            background-color: #ffffff !important;
         }
         
         /* Form Element Base Styles - Compact 28px height */
         .compact-input {
             border: 1px solid #d0d0d0;
             border-radius: 6px;
-            padding: 6px 12px;
+            padding: 3px 6px;
             font-size: 14px;
             background-color: #ffffff !important;
             color: #333333;
-            height: 28px;
+            height: 25px;
         }
         
         .compact-input:focus {
@@ -739,14 +739,14 @@ class MainWindow(QMainWindow):
         }
         
         /* API Key Input - Compact */
-        #apiKeyInput {
+        #settingsView #apiKeyInput {
             border: 1px solid #d0d0d0;
             border-radius: 6px;
-            padding: 6px 12px;
+            padding: 3px 6px;
             font-size: 14px;
             background-color: #ffffff !important;
             color: #333333;
-            height: 28px;
+            height: 25px;
         }
         
         #apiKeyInput:focus {

@@ -228,8 +228,8 @@ class CustomDropdown(QWidget):
 
         # Configure widget
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setMinimumHeight(44)
-        self.setMaximumHeight(44)
+        self.setMinimumHeight(32)
+        self.setMaximumHeight(32)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def add_item(self, text: str, data=None):
@@ -280,22 +280,24 @@ class CustomDropdown(QWidget):
 
         # Define colors based on state
         if self.is_pressed:
-            bg_color = QColor(245, 245, 245)
-            border_color = QColor(0, 122, 255)
+            bg_color = QColor(255, 255, 255)
+            # border_color = QColor(0, 122, 255)
+            border_color = QColor(192, 192, 192)
         elif self.is_hovered:
-            bg_color = QColor(250, 250, 250)
+            bg_color = QColor(255, 255, 255)
             border_color = QColor(192, 192, 192)
         elif self.hasFocus():
             bg_color = QColor(255, 255, 255)
-            border_color = QColor(0, 122, 255)
+            # border_color = QColor(0, 122, 255)
+            border_color = QColor(192, 192, 192)
         else:
             bg_color = QColor(255, 255, 255)
-            border_color = QColor(224, 224, 224)
+            border_color = QColor(224, 224, 224)  # default
 
         # Draw background
         rect = self.rect().adjusted(1, 1, -1, -1)
         bg_path = QPainterPath()
-        bg_path.addRoundedRect(rect, 8, 8)
+        bg_path.addRoundedRect(rect, 6, 6)
         painter.fillPath(bg_path, bg_color)
 
         # Draw border
@@ -303,12 +305,12 @@ class CustomDropdown(QWidget):
         painter.drawPath(bg_path)
 
         # Draw focus ring if focused
-        if self.hasFocus():
+        """if self.hasFocus():
             focus_rect = self.rect().adjusted(-2, -2, 2, 2)
             focus_path = QPainterPath()
             focus_path.addRoundedRect(focus_rect, 10, 10)
             painter.setPen(QPen(QColor(0, 122, 255, 50), 4))
-            painter.drawPath(focus_path)
+            painter.drawPath(focus_path)"""
 
         # Draw text
         if self.items and 0 <= self.current_index < len(self.items):
