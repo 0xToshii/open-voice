@@ -68,6 +68,7 @@ class SidebarWidget(QWidget):
     def add_menu_item(self, layout: QVBoxLayout, icon_path: str, text: str):
         container = QWidget()
         container.setObjectName("menuItem")
+        container.setCursor(Qt.CursorShape.PointingHandCursor)
 
         item_layout = QHBoxLayout()
         item_layout.setContentsMargins(12, 7, 12, 7)
@@ -610,7 +611,6 @@ class MainWindow(QMainWindow):
             margin-left: 0px;
         }
         
-        
         #historyView {
             background-color: #f5f5f5 !important;
             border: none;
@@ -771,7 +771,7 @@ class MainWindow(QMainWindow):
             font-size: 24px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             background-color: transparent;
         }
         
@@ -783,15 +783,17 @@ class MainWindow(QMainWindow):
             line-height: 1.4;
         }
         
-        #instructionsSection {
+        /* Outter text block for the custom instructions page */
+        #customInstructionsView #instructionsSection {
             background-color: #ffffff !important;
-            border: 1px solid #e8e8e8;
+            border: 1px solid #d0d0d0;
             border-radius: 12px;
             margin-bottom: 20px;
         }
-        
-        #customInstructionsInput {
-            border: 1px solid #d0d0d0;
+
+        /* Inner text block for the custom instructions page */
+        #customInstructionsView #customInstructionsInput {
+            border: 1px solid #e8e8e8;
             border-radius: 6px;
             padding: 12px;
             font-size: 14px;

@@ -34,7 +34,7 @@ class SettingsView(QScrollArea):
         layout.setSpacing(20)
 
         # Title
-        title_label = QLabel("SETTINGS")
+        title_label = QLabel("Settings")
         title_label.setObjectName("settingsTitle")
         layout.addWidget(title_label)
 
