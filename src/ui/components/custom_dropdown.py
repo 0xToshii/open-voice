@@ -29,6 +29,7 @@ class DropdownList(QWidget):
         # Configure widget
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setMouseTracking(True)  # Enable hover detection without mouse button press
 
         # Install global event filter to detect clicks outside
         QApplication.instance().installEventFilter(self)
@@ -96,7 +97,9 @@ class DropdownList(QWidget):
                 )
                 hover_path = QPainterPath()
                 hover_path.addRoundedRect(hover_rect, 4, 4)
-                painter.fillPath(hover_path, QColor(245, 245, 245))
+                painter.fillPath(
+                    hover_path, QColor(240, 240, 240)
+                )  # Match sidebar menu hover color (#f0f0f0)
 
             # Draw text - ALWAYS use dark color for visibility
             painter.setPen(QColor(40, 40, 40))  # Dark gray for ALL text
@@ -119,9 +122,9 @@ class DropdownList(QWidget):
 
             # Draw checkmark for selected item
             if i == self.selected_index:
-                check_rect = QRect(
-                    rect.right() - 26, start_y + i * item_height + 12, 16, 16
-                )
+                # Center the checkmark vertically within the item
+                checkmark_y = start_y + i * item_height + (item_height - 16) // 2
+                check_rect = QRect(rect.right() - 26, checkmark_y, 16, 16)
                 painter.setPen(QPen(QColor(0, 122, 255), 2))
                 # Draw checkmark
                 painter.drawLine(
@@ -329,7 +332,9 @@ class CustomDropdown(QWidget):
             )
 
         # Draw dropdown arrow
-        arrow_rect = QRect(rect.right() - 30, rect.center().y() - 3, 8, 6)
+        arrow_height = 6
+        arrow_y = rect.center().y() - (arrow_height // 2) + 1
+        arrow_rect = QRect(rect.right() - 22, arrow_y, 8, arrow_height)
         painter.setPen(QPen(QColor(153, 153, 153), 2))
         painter.setBrush(QBrush(QColor(153, 153, 153)))
 

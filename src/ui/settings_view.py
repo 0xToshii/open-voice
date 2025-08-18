@@ -180,7 +180,7 @@ class SettingsView(QScrollArea):
 
         # Microphone dropdown row
         microphone_row = QHBoxLayout()
-        microphone_label = QLabel("Microphone:")
+        microphone_label = QLabel("Device:")
         microphone_label.setObjectName("settingLabel")
         microphone_label.setMinimumWidth(120)
 
