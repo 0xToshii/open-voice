@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
-from PySide6.QtCore import Qt, Signal, QRect, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, Signal, QRect, QPropertyAnimation, QEasingCurve, QEvent
 from PySide6.QtGui import (
     QPainter,
     QPen,
@@ -29,6 +29,9 @@ class DropdownList(QWidget):
         # Configure widget
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        # Install global event filter to detect clicks outside
+        QApplication.instance().installEventFilter(self)
 
         # Calculate size
         self.update_size()
@@ -185,6 +188,28 @@ class DropdownList(QWidget):
             self.close()
         else:
             super().keyPressEvent(event)
+
+    def focusOutEvent(self, event):
+        """Handle losing focus - close dropdown without changing selection"""
+        self.close()
+        super().focusOutEvent(event)
+
+    def eventFilter(self, obj, event):
+        """Global event filter to detect clicks outside dropdown"""
+        if event.type() == QEvent.Type.MouseButtonPress:
+            # Get the global position of the mouse click
+            global_pos = event.globalPos()
+            # Check if the click is outside our dropdown bounds
+            dropdown_rect = QRect(self.pos(), self.size())
+            if not dropdown_rect.contains(global_pos):
+                self.close()
+                return False
+        return super().eventFilter(obj, event)
+
+    def closeEvent(self, event):
+        """Clean up event filter when closing"""
+        QApplication.instance().removeEventFilter(self)
+        super().closeEvent(event)
 
 
 class CustomDropdown(QWidget):
