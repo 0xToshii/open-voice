@@ -133,22 +133,25 @@ class SettingsView(QScrollArea):
         """Update UI elements based on selected provider"""
         current_provider = self.settings_manager.get_selected_provider()
 
-        if current_provider == "local":
-            # Hide API key field for local provider
-            for widget in self.api_key_widgets:
-                widget.hide()
-        else:
-            # Show API key field for providers that need it
-            for widget in self.api_key_widgets:
-                widget.show()
+        # Always show API key widgets
+        for widget in self.api_key_widgets:
+            widget.show()
 
-            # Update placeholder and current value based on provider
+        if current_provider == "local":
+            # For local provider: disable input and show "Not required"
+            self.api_key_input.setEnabled(False)
+            self.api_key_input.setPlaceholderText("Not required")
+            self.api_key_input.clear()
+        else:
+            # For other providers: enable input and set appropriate placeholder
+            self.api_key_input.setEnabled(True)
+
             if current_provider == "openai":
-                self.api_key_input.setPlaceholderText("Enter your OpenAI API key...")
+                self.api_key_input.setPlaceholderText("Enter your OpenAI API key")
                 current_key = self.settings_manager.get_provider_api_key("openai") or ""
                 self.api_key_input.setText(current_key)
             elif current_provider == "groq":
-                self.api_key_input.setPlaceholderText("Enter your Groq API key...")
+                self.api_key_input.setPlaceholderText("Enter your Groq API key")
                 current_key = self.settings_manager.get_provider_api_key("groq") or ""
                 self.api_key_input.setText(current_key)
 
