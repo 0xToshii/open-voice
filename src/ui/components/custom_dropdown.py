@@ -15,6 +15,8 @@ from typing import List, Optional
 class DropdownList(QWidget):
     """Custom dropdown list widget that appears below the main button"""
 
+    ITEM_HEIGHT = 32  # Height of each dropdown item - easy to adjust in one place
+
     item_selected = Signal(int)  # Emits the index of selected item
 
     def __init__(self, items: List[str], parent=None, button_width: int = 200):
@@ -38,7 +40,9 @@ class DropdownList(QWidget):
 
         # Use exact button width to match perfectly
         width = self.button_width
-        height = len(self.items) * 40 + 12  # 40px per item + 6px top/bottom padding
+        height = (
+            len(self.items) * self.ITEM_HEIGHT + 12
+        )  # Height per item + 6px top/bottom padding
 
         self.setFixedSize(width, height)
 
@@ -68,7 +72,7 @@ class DropdownList(QWidget):
         painter.drawPath(bg_path)
 
         # Draw items
-        item_height = 40
+        item_height = self.ITEM_HEIGHT
         start_y = rect.top() + 6
 
         for i, item in enumerate(self.items):
@@ -136,7 +140,7 @@ class DropdownList(QWidget):
     def mouseMoveEvent(self, event):
         """Handle mouse movement for hover effects"""
         rect = self.rect().adjusted(2, 2, -2, -2)
-        item_height = 40
+        item_height = self.ITEM_HEIGHT
         start_y = rect.top() + 6
 
         y_pos = event.pos().y()
@@ -153,7 +157,7 @@ class DropdownList(QWidget):
         """Handle mouse clicks"""
         if event.button() == Qt.MouseButton.LeftButton:
             rect = self.rect().adjusted(2, 2, -2, -2)
-            item_height = 40
+            item_height = self.ITEM_HEIGHT
             start_y = rect.top() + 6
 
             y_pos = event.pos().y()
@@ -382,7 +386,7 @@ class CustomDropdown(QWidget):
         # Use bottom edge, not bottom-left corner
         button_bottom = self.mapToGlobal(self.rect().bottomLeft())
         dropdown_x = button_bottom.x()
-        dropdown_y = button_bottom.y() + 2  # Just 2px gap below button
+        dropdown_y = button_bottom.y() + 25  # px gap below button for proper spacing
 
         self.dropdown_list.move(dropdown_x, dropdown_y)
 

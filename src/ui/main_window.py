@@ -70,7 +70,7 @@ class SidebarWidget(QWidget):
         container.setObjectName("menuItem")
 
         item_layout = QHBoxLayout()
-        item_layout.setContentsMargins(15, 10, 15, 10)
+        item_layout.setContentsMargins(12, 7, 12, 7)
 
         # Create icon button with SVG
         icon_button = QPushButton()
@@ -536,8 +536,6 @@ class MainWindow(QMainWindow):
             print(f"Unknown menu item: {item_name}")
             return
 
-        print(f"📋 Switched to {item_name} view")
-
     def add_transcript_entry(self, entry: TranscriptEntry):
         """Add a new transcript entry to the history"""
         # Always add to history view regardless of current tab
@@ -589,9 +587,9 @@ class MainWindow(QMainWindow):
         }
         
         #menuItem {
-            padding: 5px;
+            padding: 0px;
             border-radius: 8px;
-            margin: 2px 10px;
+            margin: 0px 8px;
             color: #333333;
             background-color: transparent;
         }
@@ -612,15 +610,6 @@ class MainWindow(QMainWindow):
             margin-left: 0px;
         }
         
-        #upgradeButton {
-            background-color: #007AFF;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 10px;
-            font-weight: bold;
-        }
         
         #historyView {
             background-color: #f5f5f5 !important;
@@ -730,17 +719,37 @@ class MainWindow(QMainWindow):
             background-color: transparent;
         }
         
-        #apiKeyInput {
+        /* Form Element Base Styles - Compact 28px height */
+        .compact-input {
             border: 1px solid #d0d0d0;
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 6px 12px;
             font-size: 14px;
             background-color: #ffffff !important;
             color: #333333;
+            height: 28px;
+        }
+        
+        .compact-input:focus {
+            outline: none;
+        }
+        
+        .compact-input::placeholder {
+            color: #999;
+        }
+        
+        /* API Key Input - Compact */
+        #apiKeyInput {
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 14px;
+            background-color: #ffffff !important;
+            color: #333333;
+            height: 28px;
         }
         
         #apiKeyInput:focus {
-            border-color: #007AFF;
             outline: none;
         }
         
@@ -792,7 +801,6 @@ class MainWindow(QMainWindow):
         }
         
         #customInstructionsInput:focus {
-            border-color: #007AFF;
             outline: none;
         }
         
